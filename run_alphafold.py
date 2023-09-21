@@ -38,7 +38,7 @@ from alphafold.data.tools import hmmsearch
 from alphafold.model import config
 from alphafold.model import data
 from alphafold.model import model
-from alphafold.relax import relax
+# from alphafold.relax import relax
 import jax.numpy as jnp
 import numpy as np
 
@@ -235,7 +235,7 @@ def predict_structure(
     output_dir_base: str,
     data_pipeline: Union[pipeline.DataPipeline, pipeline_multimer.DataPipeline],
     model_runners: Dict[str, model.RunModel],
-    amber_relaxer: relax.AmberRelaxation,
+    amber_relaxer: str,#relax.AmberRelaxation,
     benchmark: bool,
     random_seed: int,
     models_to_relax: ModelsToRelax,

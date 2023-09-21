@@ -323,6 +323,7 @@ def predict_structure(
     # Note that higher predicted LDDT value means higher model confidence.
     plddt_b_factors = np.repeat(
         plddt[:, None], residue_constants.atom_type_num, axis=-1)
+    """
     unrelaxed_protein = protein.from_prediction(
         features=processed_feature_dict,
         result=prediction_result,
@@ -410,7 +411,7 @@ def predict_structure(
     label = 'iptm+ptm' if 'iptm' in prediction_result else 'plddts'
     f.write(json.dumps(
         {label: ranking_confidences, 'order': ranked_order}, indent=4))
-
+  """ 
   logging.info('Final timings for %s: %s', fasta_name, timings)
 
   timings_output_path = os.path.join(output_dir, 'timings.json')

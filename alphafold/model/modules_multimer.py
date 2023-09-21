@@ -343,6 +343,8 @@ class AlphaFoldIteration(hk.Module):
 
     (representations, _), _ = hk.scan(
         ensemble_body, (representations, safe_key), None, length=num_ensemble)
+    
+    # after evoformer is done we want to return the representations
 
     self.representations = representations
     self.batch = batch
@@ -356,8 +358,8 @@ class AlphaFoldIteration(hk.Module):
               modules.MaskedMsaHead,
           'distogram':
               modules.DistogramHead,
-          'structure_module':
-              folding_multimer.StructureModule,
+          # 'structure_module':
+          #     folding_multimer.StructureModule,
           'predicted_aligned_error':
               modules.PredictedAlignedErrorHead,
           'predicted_lddt':
@@ -369,9 +371,9 @@ class AlphaFoldIteration(hk.Module):
                                head_factory(head_config, self.global_config))
 
     structure_module_output = None
-    if 'entity_id' in batch and 'all_atom_positions' in batch:
-      _, fold_module = self.heads['structure_module']
-      structure_module_output = fold_module(representations, batch, is_training)
+    # if 'entity_id' in batch and 'all_atom_positions' in batch:
+    #   _, fold_module = self.heads['structure_module']
+    #   structure_module_output = fold_module(representations, batch, is_training)
 
     ret = {}
     ret['representations'] = representations
@@ -462,62 +464,62 @@ class AlphaFold(hk.Module):
       prev['prev_pair'] = jnp.zeros(
           [num_res, num_res, emb_config.pair_channel])
 
-    if self.config.num_recycle:
-      if 'num_iter_recycling' in batch:
-        # Training time: num_iter_recycling is in batch.
-        # Value for each ensemble batch is the same, so arbitrarily taking 0-th.
-        num_iter = batch['num_iter_recycling'][0]
+    # if self.config.num_recycle:
+    #   if 'num_iter_recycling' in batch:
+    #     # Training time: num_iter_recycling is in batch.
+    #     # Value for each ensemble batch is the same, so arbitrarily taking 0-th.
+    #     num_iter = batch['num_iter_recycling'][0]
 
-        # Add insurance that even when ensembling, we will not run more
-        # recyclings than the model is configured to run.
-        num_iter = jnp.minimum(num_iter, c.num_recycle)
-      else:
-        # Eval mode or tests: use the maximum number of iterations.
-        num_iter = c.num_recycle
+    #     # Add insurance that even when ensembling, we will not run more
+    #     # recyclings than the model is configured to run.
+    #     num_iter = jnp.minimum(num_iter, c.num_recycle)
+    #   else:
+    #     # Eval mode or tests: use the maximum number of iterations.
+    #     num_iter = c.num_recycle
 
-      def distances(points):
-        """Compute all pairwise distances for a set of points."""
-        return jnp.sqrt(jnp.sum((points[:, None] - points[None, :])**2,
-                                axis=-1))
+    #   def distances(points):
+    #     """Compute all pairwise distances for a set of points."""
+    #     return jnp.sqrt(jnp.sum((points[:, None] - points[None, :])**2,
+    #                             axis=-1))
 
-      def recycle_body(x):
-        i, _, prev, safe_key = x
-        safe_key1, safe_key2 = safe_key.split() if c.resample_msa_in_recycling else safe_key.duplicate()  # pylint: disable=line-too-long
-        ret = apply_network(prev=prev, safe_key=safe_key2)
-        return i+1, prev, get_prev(ret), safe_key1
+    #   def recycle_body(x):
+    #     i, _, prev, safe_key = x
+    #     safe_key1, safe_key2 = safe_key.split() if c.resample_msa_in_recycling else safe_key.duplicate()  # pylint: disable=line-too-long
+    #     ret = apply_network(prev=prev, safe_key=safe_key2)
+    #     return i+1, prev, get_prev(ret), safe_key1
 
-      def recycle_cond(x):
-        i, prev, next_in, _ = x
-        ca_idx = residue_constants.atom_order['CA']
-        sq_diff = jnp.square(distances(prev['prev_pos'][:, ca_idx, :]) -
-                             distances(next_in['prev_pos'][:, ca_idx, :]))
-        mask = batch['seq_mask'][:, None] * batch['seq_mask'][None, :]
-        sq_diff = utils.mask_mean(mask, sq_diff)
-        # Early stopping criteria based on criteria used in
-        # AF2Complex: https://www.nature.com/articles/s41467-022-29394-2
-        diff = jnp.sqrt(sq_diff + 1e-8)  # avoid bad numerics giving negatives
-        less_than_max_recycles = (i < num_iter)
-        has_exceeded_tolerance = (
-            (i == 0) | (diff > c.recycle_early_stop_tolerance))
-        return less_than_max_recycles & has_exceeded_tolerance
+    #   def recycle_cond(x):
+    #     i, prev, next_in, _ = x
+    #     ca_idx = residue_constants.atom_order['CA']
+    #     sq_diff = jnp.square(distances(prev['prev_pos'][:, ca_idx, :]) -
+    #                          distances(next_in['prev_pos'][:, ca_idx, :]))
+    #     mask = batch['seq_mask'][:, None] * batch['seq_mask'][None, :]
+    #     sq_diff = utils.mask_mean(mask, sq_diff)
+    #     # Early stopping criteria based on criteria used in
+    #     # AF2Complex: https://www.nature.com/articles/s41467-022-29394-2
+    #     diff = jnp.sqrt(sq_diff + 1e-8)  # avoid bad numerics giving negatives
+    #     less_than_max_recycles = (i < num_iter)
+    #     has_exceeded_tolerance = (
+    #         (i == 0) | (diff > c.recycle_early_stop_tolerance))
+    #     return less_than_max_recycles & has_exceeded_tolerance
 
-      if hk.running_init():
-        num_recycles, _, prev, safe_key = recycle_body(
-            (0, prev, prev, safe_key))
-      else:
-        num_recycles, _, prev, safe_key = hk.while_loop(
-            recycle_cond,
-            recycle_body,
-            (0, prev, prev, safe_key))
-    else:
+    #   if hk.running_init():
+    #     num_recycles, _, prev, safe_key = recycle_body(
+    #         (0, prev, prev, safe_key))
+    #   else:
+    #     num_recycles, _, prev, safe_key = hk.while_loop(
+    #         recycle_cond,
+    #         recycle_body,
+    #         (0, prev, prev, safe_key))
+    #else:
       # No recycling.
-      num_recycles = 0
+    num_recycles = 0
 
     # Run extra iteration.
     ret = apply_network(prev=prev, safe_key=safe_key)
 
-    if not return_representations:
-      del ret['representations']
+    #if False:#not return_representations:
+    #  del ret['representations']
     ret['num_recycles'] = num_recycles
 
     return ret

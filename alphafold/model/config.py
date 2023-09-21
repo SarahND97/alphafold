@@ -235,7 +235,7 @@ CONFIG = ml_collections.ConfigDict({
     },
     'model': {
         'embeddings_and_evoformer': {
-            'evoformer_num_block': 48,
+            'evoformer_num_block': 10,
             'evoformer': {
                 'msa_row_attention_with_pair_bias': {
                     'dropout_rate': 0.15,
@@ -411,37 +411,37 @@ CONFIG = ml_collections.ConfigDict({
                 'min_resolution': 0.1,
                 'weight': 0.01
             },
-            'structure_module': {
-                'num_layer': 8,
-                'fape': {
-                    'clamp_distance': 10.0,
-                    'clamp_type': 'relu',
-                    'loss_unit_distance': 10.0
-                },
-                'angle_norm_weight': 0.01,
-                'chi_weight': 0.5,
-                'clash_overlap_tolerance': 1.5,
-                'compute_in_graph_metrics': True,
-                'dropout': 0.1,
-                'num_channel': 384,
-                'num_head': 12,
-                'num_layer_in_transition': 3,
-                'num_point_qk': 4,
-                'num_point_v': 8,
-                'num_scalar_qk': 16,
-                'num_scalar_v': 16,
-                'position_scale': 10.0,
-                'sidechain': {
-                    'atom_clamp_distance': 10.0,
-                    'num_channel': 128,
-                    'num_residual_block': 2,
-                    'weight_frac': 0.5,
-                    'length_scale': 10.,
-                },
-                'structural_violation_loss_weight': 1.0,
-                'violation_tolerance_factor': 12.0,
-                'weight': 1.0
-            },
+            # 'structure_module': {
+            #     'num_layer': 8,
+            #     'fape': {
+            #         'clamp_distance': 10.0,
+            #         'clamp_type': 'relu',
+            #         'loss_unit_distance': 10.0
+            #     },
+            #     'angle_norm_weight': 0.01,
+            #     'chi_weight': 0.5,
+            #     'clash_overlap_tolerance': 1.5,
+            #     'compute_in_graph_metrics': True,
+            #     'dropout': 0.1,
+            #     'num_channel': 384,
+            #     'num_head': 12,
+            #     'num_layer_in_transition': 3,
+            #     'num_point_qk': 4,
+            #     'num_point_v': 8,
+            #     'num_scalar_qk': 16,
+            #     'num_scalar_v': 16,
+            #     'position_scale': 10.0,
+            #     'sidechain': {
+            #         'atom_clamp_distance': 10.0,
+            #         'num_channel': 128,
+            #         'num_residual_block': 2,
+            #         'weight_frac': 0.5,
+            #         'length_scale': 10.,
+            #     },
+            #     'structural_violation_loss_weight': 1.0,
+            #     'violation_tolerance_factor': 12.0,
+            #     'weight': 1.0
+            # },
             'predicted_lddt': {
                 'filter_by_resolution': True,
                 'max_resolution': 3.0,
@@ -455,7 +455,7 @@ CONFIG = ml_collections.ConfigDict({
                 'weight': 2.0
             },
         },
-        'num_recycle': 3,
+        'num_recycle': 0,
         'resample_msa_in_recycling': True
     },
 })
@@ -464,7 +464,7 @@ CONFIG = ml_collections.ConfigDict({
 CONFIG_MULTIMER = ml_collections.ConfigDict({
     'model': {
         'embeddings_and_evoformer': {
-            'evoformer_num_block': 48,
+            'evoformer_num_block': 10,
             'evoformer': {
                 'msa_column_attention': {
                     'dropout_rate': 0.0,
@@ -652,42 +652,42 @@ CONFIG_MULTIMER = ml_collections.ConfigDict({
                 'num_channels': 128,
                 'weight': 0.01
             },
-            'structure_module': {
-                'angle_norm_weight': 0.01,
-                'chi_weight': 0.5,
-                'clash_overlap_tolerance': 1.5,
-                'dropout': 0.1,
-                'interface_fape': {
-                    'atom_clamp_distance': 1000.0,
-                    'loss_unit_distance': 20.0
-                },
-                'intra_chain_fape': {
-                    'atom_clamp_distance': 10.0,
-                    'loss_unit_distance': 10.0
-                },
-                'num_channel': 384,
-                'num_head': 12,
-                'num_layer': 8,
-                'num_layer_in_transition': 3,
-                'num_point_qk': 4,
-                'num_point_v': 8,
-                'num_scalar_qk': 16,
-                'num_scalar_v': 16,
-                'position_scale': 20.0,
-                'sidechain': {
-                    'atom_clamp_distance': 10.0,
-                    'loss_unit_distance': 10.0,
-                    'num_channel': 128,
-                    'num_residual_block': 2,
-                    'weight_frac': 0.5
-                },
-                'structural_violation_loss_weight': 1.0,
-                'violation_tolerance_factor': 12.0,
-                'weight': 1.0
-            }
+            # 'structure_module': {
+            #     'angle_norm_weight': 0.01,
+            #     'chi_weight': 0.5,
+            #     'clash_overlap_tolerance': 1.5,
+            #     'dropout': 0.1,
+            #     'interface_fape': {
+            #         'atom_clamp_distance': 1000.0,
+            #         'loss_unit_distance': 20.0
+            #     },
+            #     'intra_chain_fape': {
+            #         'atom_clamp_distance': 10.0,
+            #         'loss_unit_distance': 10.0
+            #     },
+            #     'num_channel': 384,
+            #     'num_head': 12,
+            #     'num_layer': 8,
+            #     'num_layer_in_transition': 3,
+            #     'num_point_qk': 4,
+            #     'num_point_v': 8,
+            #     'num_scalar_qk': 16,
+            #     'num_scalar_v': 16,
+            #     'position_scale': 20.0,
+            #     'sidechain': {
+            #         'atom_clamp_distance': 10.0,
+            #         'loss_unit_distance': 10.0,
+            #         'num_channel': 128,
+            #         'num_residual_block': 2,
+            #         'weight_frac': 0.5
+            #     },
+            #     'structural_violation_loss_weight': 1.0,
+            #     'violation_tolerance_factor': 12.0,
+            #     'weight': 1.0
+            # }
         },
         'num_ensemble_eval': 1,
-        'num_recycle': 20,
+        'num_recycle': 0,
         # A negative value indicates that no early stopping will occur, i.e.
         # the model will always run `num_recycle` number of recycling
         # iterations.  A positive value will enable early stopping if the

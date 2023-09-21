@@ -161,6 +161,7 @@ class RunModel:
     Returns:
       A dictionary of model outputs.
     """
+    # TODO: make sure that the representations are added to the results here!!!!
     self.init_params(feat)
     logging.info('Running predict with shape(feat) = %s',
                  tree.map_structure(lambda x: x.shape, feat))

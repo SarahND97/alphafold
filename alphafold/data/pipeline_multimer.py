@@ -175,7 +175,7 @@ class DataPipeline:
                jackhmmer_binary_path: str,
                uniprot_database_path: str,
                max_uniprot_hits: int = 50000,
-               use_precomputed_msas: bool = False):
+               use_precomputed_msas: bool = True):
     """Initializes the data pipeline.
 
     Args:

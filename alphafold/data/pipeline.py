@@ -85,10 +85,12 @@ def make_msa_features(msas: Sequence[parsers.Msa]) -> FeatureDict:
 
 
 def run_msa_tool(msa_runner, input_fasta_path: str, msa_out_path: str,
-                 msa_format: str, use_precomputed_msas: bool,
+                 msa_format: str, use_precomputed_msas: bool = True,
                  max_sto_sequences: Optional[int] = None
                  ) -> Mapping[str, Any]:
   """Runs an MSA tool, checking if output already exists first."""
+  logging.info("os.path.exists(msa_out_path): ", os.path.exists(msa_out_path))
+  logging.info("msa_out_path: ", os.path.exists(msa_out_path))
   if not use_precomputed_msas or not os.path.exists(msa_out_path):
     if msa_format == 'sto' and max_sto_sequences is not None:
       result = msa_runner.query(input_fasta_path, max_sto_sequences)[0]  # pytype: disable=wrong-arg-count
@@ -124,7 +126,7 @@ class DataPipeline:
                use_small_bfd: bool,
                mgnify_max_hits: int = 501,
                uniref_max_hits: int = 10000,
-               use_precomputed_msas: bool = False):
+               use_precomputed_msas: bool = True):
     """Initializes the data pipeline."""
     self._use_small_bfd = use_small_bfd
     self.jackhmmer_uniref90_runner = jackhmmer.Jackhmmer(

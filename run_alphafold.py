@@ -460,29 +460,29 @@ def main(argv):
   if len(fasta_names) != len(set(fasta_names)):
     raise ValueError('All FASTA paths must have a unique basename.')
 
-  if run_multimer_system:
-    template_searcher = hmmsearch.Hmmsearch(
-        binary_path=FLAGS.hmmsearch_binary_path,
-        hmmbuild_binary_path=FLAGS.hmmbuild_binary_path,
-        database_path=FLAGS.pdb_seqres_database_path)
-    template_featurizer = templates.HmmsearchHitFeaturizer(
-        mmcif_dir=FLAGS.template_mmcif_dir,
-        max_template_date=FLAGS.max_template_date,
-        max_hits=MAX_TEMPLATE_HITS,
-        kalign_binary_path=FLAGS.kalign_binary_path,
-        release_dates_path=None,
-        obsolete_pdbs_path=FLAGS.obsolete_pdbs_path)
-  else:
-    template_searcher = hhsearch.HHSearch(
-        binary_path=FLAGS.hhsearch_binary_path,
-        databases=[FLAGS.pdb70_database_path])
-    template_featurizer = templates.HhsearchHitFeaturizer(
-        mmcif_dir=FLAGS.template_mmcif_dir,
-        max_template_date=FLAGS.max_template_date,
-        max_hits=MAX_TEMPLATE_HITS,
-        kalign_binary_path=FLAGS.kalign_binary_path,
-        release_dates_path=None,
-        obsolete_pdbs_path=FLAGS.obsolete_pdbs_path)
+  # if run_multimer_system:
+  #   template_searcher = hmmsearch.Hmmsearch(
+  #       binary_path=FLAGS.hmmsearch_binary_path,
+  #       hmmbuild_binary_path=FLAGS.hmmbuild_binary_path,
+  #       database_path=FLAGS.pdb_seqres_database_path)
+  #   template_featurizer = templates.HmmsearchHitFeaturizer(
+  #       mmcif_dir=FLAGS.template_mmcif_dir,
+  #       max_template_date=FLAGS.max_template_date,
+  #       max_hits=MAX_TEMPLATE_HITS,
+  #       kalign_binary_path=FLAGS.kalign_binary_path,
+  #       release_dates_path=None,
+  #       obsolete_pdbs_path=FLAGS.obsolete_pdbs_path)
+  # else:
+  #   template_searcher = hhsearch.HHSearch(
+  #       binary_path=FLAGS.hhsearch_binary_path,
+  #       databases=[FLAGS.pdb70_database_path])
+  #   template_featurizer = templates.HhsearchHitFeaturizer(
+  #       mmcif_dir=FLAGS.template_mmcif_dir,
+  #       max_template_date=FLAGS.max_template_date,
+  #       max_hits=MAX_TEMPLATE_HITS,
+  #       kalign_binary_path=FLAGS.kalign_binary_path,
+  #       release_dates_path=None,
+  #       obsolete_pdbs_path=FLAGS.obsolete_pdbs_path)
 
   monomer_data_pipeline = pipeline.DataPipeline(
       jackhmmer_binary_path=FLAGS.jackhmmer_binary_path,

@@ -119,11 +119,11 @@ class DataPipeline:
                bfd_database_path: Optional[str],
                uniref30_database_path: Optional[str],
                small_bfd_database_path: Optional[str],
-               template_searcher: TemplateSearcher,
-               template_featurizer: templates.TemplateHitFeaturizer,
                use_small_bfd: bool,
                mgnify_max_hits: int = 501,
                uniref_max_hits: int = 10000,
+               template_searcher: Optional[TemplateSearcher] = None,
+               template_featurizer: Optional[templates.TemplateHitFeaturizer] = None,
                use_precomputed_msas: bool = True):
     """Initializes the data pipeline."""
     self._use_small_bfd = use_small_bfd
@@ -194,6 +194,13 @@ class DataPipeline:
     #     msa_output_dir, f'pdb_hits.{self.template_searcher.output_format}')
     # with open(pdb_hits_out_path, 'w') as f:
     #   f.write(pdb_templates_result)
+
+      # pdb_template_hits = self.template_searcher.get_template_hits(
+    #     output_string=pdb_templates_result, input_sequence=input_sequence)
+
+        # templates_result = self.template_featurizer.get_templates(
+    #     query_sequence=input_sequence,
+    #     hits=pdb_template_hits)
     
     # prepare empty template features 
     TEMPLATE_FEATURES = {                                                                              
@@ -211,8 +218,7 @@ class DataPipeline:
     uniref90_msa = parsers.parse_stockholm(jackhmmer_uniref90_result['sto'])
     mgnify_msa = parsers.parse_stockholm(jackhmmer_mgnify_result['sto'])
 
-    # pdb_template_hits = self.template_searcher.get_template_hits(
-    #     output_string=pdb_templates_result, input_sequence=input_sequence)
+  
 
     if self._use_small_bfd:
       bfd_out_path = os.path.join(msa_output_dir, 'small_bfd_hits.sto')
@@ -233,9 +239,7 @@ class DataPipeline:
           use_precomputed_msas=self.use_precomputed_msas)
       bfd_msa = parsers.parse_a3m(hhblits_bfd_uniref_result['a3m'])
 
-    # templates_result = self.template_featurizer.get_templates(
-    #     query_sequence=input_sequence,
-    #     hits=pdb_template_hits)
+
 
     sequence_features = make_sequence_features(
         sequence=input_sequence,

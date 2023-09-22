@@ -525,13 +525,13 @@ def main(argv):
   logging.info('Have %d models: %s', len(model_runners),
                list(model_runners.keys()))
 
-  amber_relaxer = relax.AmberRelaxation(
-      max_iterations=RELAX_MAX_ITERATIONS,
-      tolerance=RELAX_ENERGY_TOLERANCE,
-      stiffness=RELAX_STIFFNESS,
-      exclude_residues=RELAX_EXCLUDE_RESIDUES,
-      max_outer_iterations=RELAX_MAX_OUTER_ITERATIONS,
-      use_gpu=FLAGS.use_gpu_relax)
+  # amber_relaxer = relax.AmberRelaxation(
+  #     max_iterations=RELAX_MAX_ITERATIONS,
+  #     tolerance=RELAX_ENERGY_TOLERANCE,
+  #     stiffness=RELAX_STIFFNESS,
+  #     exclude_residues=RELAX_EXCLUDE_RESIDUES,
+  #     max_outer_iterations=RELAX_MAX_OUTER_ITERATIONS,
+  #     use_gpu=FLAGS.use_gpu_relax)
 
   random_seed = FLAGS.random_seed
   if random_seed is None:

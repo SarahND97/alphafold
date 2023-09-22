@@ -460,6 +460,9 @@ def main(argv):
   if len(fasta_names) != len(set(fasta_names)):
     raise ValueError('All FASTA paths must have a unique basename.')
 
+  ##### TEMPLATES #######
+  template_searcher = None
+  template_featurizer = None
   # if run_multimer_system:
   #   template_searcher = hmmsearch.Hmmsearch(
   #       binary_path=FLAGS.hmmsearch_binary_path,

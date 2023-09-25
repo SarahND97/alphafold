@@ -85,9 +85,10 @@ def convert_monomer_features(
       # The multimer model performs the one-hot operation itself.
       feature = np.argmax(feature, axis=-1).astype(np.int32)
     elif feature_name == 'template_aatype':
-      feature = np.argmax(feature, axis=-1).astype(np.int32)
-      new_order_list = residue_constants.MAP_HHBLITS_AATYPE_TO_OUR_AATYPE
-      feature = np.take(new_order_list, feature.astype(np.int32), axis=0)
+      if len(feature) != 0:
+        feature = np.argmax(feature, axis=-1).astype(np.int32)
+        new_order_list = residue_constants.MAP_HHBLITS_AATYPE_TO_OUR_AATYPE
+        feature = np.take(new_order_list, feature.astype(np.int32), axis=0)
     elif feature_name == 'template_all_atom_masks':
       feature_name = 'template_all_atom_mask'
     converted[feature_name] = feature

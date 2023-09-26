@@ -19,6 +19,7 @@ import contextlib
 import functools
 import inspect
 from typing import Any, Callable, Optional, Tuple, Union
+from absl import logging
 
 import haiku as hk
 import jax
@@ -131,6 +132,9 @@ class _LayerStack(hk.Module):
         def getter(next_getter, value, context):
           # Getter slices the full param at the current loop index.
           trailing_dims = len(context.original_shape) + 1
+          logging.info('value: %s', str(value))
+          logging.info('context: %s', str(context))        
+
           assert value.shape[value.ndim - trailing_dims] == count, (
               f'Attempting to use a parameter stack of size '
               f'{value.shape[value.ndim - trailing_dims]} for a LayerStack of '

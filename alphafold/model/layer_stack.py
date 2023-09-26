@@ -255,6 +255,7 @@ def layer_stack(num_layers: int,
     Callable that will produce a layer stack when called with a valid function.
   """
   def iterate(f):
+    logging.info('num_layers: %d', num_layers)
     if with_state:
       @functools.wraps(f)
       def wrapped(x, *args):

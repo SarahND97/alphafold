@@ -357,12 +357,19 @@ def _merge_features_from_multiple_chains(
             *feats, pad_value=MSA_PAD_VALUES[feature_name])
     elif feature_name_split in SEQ_FEATURES:
       merged_example[feature_name] = np.concatenate(feats, axis=0)
-    elif feature_name_split in TEMPLATE_FEATURES:
+    elif feature_name_split in TEMPLATE_FEATURES and np.all(feats[0]!=0):
       merged_example[feature_name] = np.concatenate(feats, axis=1)
+    elif feature_name_split in TEMPLATE_FEATURES: continue
     elif feature_name_split in CHAIN_FEATURES:
       merged_example[feature_name] = np.sum(x for x in feats).astype(np.int32)
     else:
       merged_example[feature_name] = feats[0]
+  if 'template_aatype' not in merged_example:                                                           #<<<<<<<MOD!
+    merged_len = merged_example['aatype'].shape[0]                                                      #<<<<<<<MOD!
+    merged_example['template_aatype'] = np.zeros((1, merged_len), dtype=np.int32)                       #<<<<<<<MOD!
+    merged_example['template_all_atom_mask'] = np.zeros((1, merged_len, 37), dtype=np.int32)            #<<<<<<<MOD!
+    merged_example['template_all_atom_positions'] = np.zeros((1, merged_len, 37, 3), dtype=np.float32)  #<<<<<<<MOD!
+
   return merged_example
 
 

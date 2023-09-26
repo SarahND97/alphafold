@@ -364,11 +364,11 @@ def _merge_features_from_multiple_chains(
       merged_example[feature_name] = np.sum(x for x in feats).astype(np.int32)
     else:
       merged_example[feature_name] = feats[0]
-  if 'template_aatype' not in merged_example:                                                           #<<<<<<<MOD!
-    merged_len = merged_example['aatype'].shape[0]                                                      #<<<<<<<MOD!
-    merged_example['template_aatype'] = np.zeros((1, merged_len), dtype=np.int32)                       #<<<<<<<MOD!
-    merged_example['template_all_atom_mask'] = np.zeros((1, merged_len, 37), dtype=np.int32)            #<<<<<<<MOD!
-    merged_example['template_all_atom_positions'] = np.zeros((1, merged_len, 37, 3), dtype=np.float32)  #<<<<<<<MOD!
+  if 'template_aatype' not in merged_example:                                                           
+    merged_len = merged_example['aatype'].shape[0]                                                      
+    merged_example['template_aatype'] = np.zeros((1, merged_len), dtype=np.int32)                       
+    merged_example['template_all_atom_mask'] = np.zeros((1, merged_len, 37), dtype=np.int32)            
+    merged_example['template_all_atom_positions'] = np.zeros((1, merged_len, 37, 3), dtype=np.float32)  
 
   return merged_example
 

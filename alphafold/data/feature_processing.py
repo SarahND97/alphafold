@@ -143,7 +143,7 @@ def _crop_single_chain(chain: pipeline.FeatureDict,
 
   for k in chain:
     k_split = k.split('_all_seq')[0]
-    if k_split in msa_pairing.TEMPLATE_FEATURES:
+    if k_split in msa_pairing.TEMPLATE_FEATURES and len(chain[k].shape)>1:
       chain[k] = chain[k][:templates_crop_size, :]
     elif k_split in msa_pairing.MSA_FEATURES:
       if '_all_seq' in k and pair_msa_sequences:

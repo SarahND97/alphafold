@@ -767,7 +767,9 @@ class EmbeddingsAndEvoformer(hk.Module):
             [evoformer_masks['msa'], template_masks], axis=0)
       
       # breakthrough getting closer!! Maybe can have something to do with the empty templates?
-      logging.info("evoformer input len: %d", len(evoformer_input['msa'])) 
+      logging.info("evoformer input msa len: %d", len(evoformer_input['msa'])) 
+      logging.info("evoformer masks msa len: %d", len(evoformer_masks['msa'])) 
+      logging.info("evoformer input len: %d", len(evoformer_input)) 
       evoformer_iteration = modules.EvoformerIteration(
           c.evoformer, gc, is_extra_msa=False, name='evoformer_iteration')
 
@@ -793,6 +795,8 @@ class EmbeddingsAndEvoformer(hk.Module):
         return evoformer_output
 
       evoformer_output = run_evoformer(evoformer_input)
+
+      logging.info("c.evoformer_num_block: %d", len(c.evoformer_num_block)) 
 
       msa_activations = evoformer_output['msa']
       pair_activations = evoformer_output['pair']

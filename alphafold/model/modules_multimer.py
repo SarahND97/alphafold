@@ -22,6 +22,7 @@ Lower-level modules up to EvoformerIteration are reused from modules.py.
 
 import functools
 from typing import Sequence
+from absl import logging
 
 from alphafold.common import residue_constants
 from alphafold.model import all_atom_multimer
@@ -764,6 +765,9 @@ class EmbeddingsAndEvoformer(hk.Module):
             [evoformer_input['msa'], template_features], axis=0)
         evoformer_masks['msa'] = jnp.concatenate(
             [evoformer_masks['msa'], template_masks], axis=0)
+      
+      # breakthrough getting closer!! Maybe can have something to do with the empty templates?
+      logging.info("evoformer input len:", len(evoformer_input['msa'])) 
       evoformer_iteration = modules.EvoformerIteration(
           c.evoformer, gc, is_extra_msa=False, name='evoformer_iteration')
 

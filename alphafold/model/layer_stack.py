@@ -133,7 +133,7 @@ class _LayerStack(hk.Module):
           # Getter slices the full param at the current loop index.
           trailing_dims = len(context.original_shape) + 1
           logging.info('value: %s', str(value))
-          logging.info('context: %s', str(context))        
+          #logging.info('context: %s', str(context))        
 
           assert value.shape[value.ndim - trailing_dims] == count, (
               f'Attempting to use a parameter stack of size '

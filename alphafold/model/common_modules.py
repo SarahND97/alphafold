@@ -15,7 +15,6 @@
 """A collection of common Haiku modules for use in protein folding."""
 import numbers
 from typing import Union, Sequence
-from absl import logging
 
 import haiku as hk
 import jax.numpy as jnp
@@ -169,7 +168,7 @@ class LayerNorm(hk.LayerNorm):
 
     param_axis = self.param_axis[0] if self.param_axis else -1
     param_shape = (x.shape[param_axis],)
-    logging.log("param_shape: %s", str(param_shape))
+    
 
     param_broadcast_shape = [1] * x.ndim
     param_broadcast_shape[param_axis] = x.shape[param_axis]

@@ -17,6 +17,7 @@
 import functools
 import numbers
 from typing import Any, Dict, Iterable, Mapping, Optional, Tuple, Union
+from absl import logging
 
 from alphafold.common import residue_constants
 from alphafold.model import all_atom_multimer
@@ -437,6 +438,7 @@ class FoldIteration(hk.Module):
 
     # Transition
     input_act = act
+    logging.info("c.num_layer_in_transition: %d", c.num_layer_in_transition)
     for i in range(c.num_layer_in_transition):
       init = 'relu' if i < c.num_layer_in_transition - 1 else final_init
       act = common_modules.Linear(

@@ -184,7 +184,8 @@ class LayerNorm(hk.LayerNorm):
           'offset', param_shape, x.dtype, init=self.offset_init)
       offset = offset.reshape(param_broadcast_shape)
 
-    logging.log("x.shape: %s", str(x.shape))
+    hej = str(x.shape)
+    logging.log("x.shape: %s", hej)
     out = super().__call__(x, scale=scale, offset=offset)
 
     if is_bf16:

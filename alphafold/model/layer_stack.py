@@ -156,7 +156,7 @@ class _LayerStack(hk.Module):
             rng, rng_ = jax.random.split(rng)
             with hk.with_rng(rng_):
               logging.info("svejsan!!##")
-              logging.info("carry.x.shape: %d", carry.x.shape)
+              logging.info("carry.x.shape: %s", str(carry.x))
               out_x, z = self._call_wrapped(carry.x, *scanned.args_ys)
         logging.info("halloj!!")
         return LayerStackCarry(x=out_x, rng=rng), z

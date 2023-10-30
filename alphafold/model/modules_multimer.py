@@ -792,6 +792,7 @@ class EmbeddingsAndEvoformer(hk.Module):
           evoformer_fn)
       
       logging.info("evoformer layerstack finished")
+      logging.info("safe_subkey: %s", str(safe_subkey))
 
       def run_evoformer(evoformer_input):
         evoformer_output, _ = evoformer_stack((evoformer_input, safe_subkey))

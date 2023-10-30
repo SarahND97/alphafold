@@ -788,12 +788,14 @@ class EmbeddingsAndEvoformer(hk.Module):
         evoformer_fn = hk.remat(evoformer_fn)
 
       safe_key, safe_subkey = safe_key.split()
+
+      logging.info("str(c.evoformer_num_block): %s", str(c.evoformer_num_block))
+      logging.info("len(c.evoformer_num_block): %d", len(c.evoformer_num_block)) 
       evoformer_stack = layer_stack.layer_stack(c.evoformer_num_block)(
           evoformer_fn)
       
       logging.info("evoformer layerstack finished")
       logging.info("safe_subkey: %s", str(safe_subkey))
-
       def run_evoformer(evoformer_input):
         evoformer_output, _ = evoformer_stack((evoformer_input, safe_subkey))
         return evoformer_output
@@ -801,7 +803,7 @@ class EmbeddingsAndEvoformer(hk.Module):
       evoformer_output = run_evoformer(evoformer_input)
       logging.info("run_evoformer finished")
 
-      logging.info("c.evoformer_num_block: %d", len(c.evoformer_num_block)) 
+     
 
       msa_activations = evoformer_output['msa']
       pair_activations = evoformer_output['pair']

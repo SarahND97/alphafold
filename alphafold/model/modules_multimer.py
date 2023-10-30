@@ -772,6 +772,7 @@ class EmbeddingsAndEvoformer(hk.Module):
       logging.info("evoformer input len: %d", len(evoformer_input)) 
       evoformer_iteration = modules.EvoformerIteration(
           c.evoformer, gc, is_extra_msa=False, name='evoformer_iteration')
+      logging.info("evoformer_iteration finished")
 
       def evoformer_fn(x):
         act, safe_key = x
@@ -789,12 +790,15 @@ class EmbeddingsAndEvoformer(hk.Module):
       safe_key, safe_subkey = safe_key.split()
       evoformer_stack = layer_stack.layer_stack(c.evoformer_num_block)(
           evoformer_fn)
+      
+      logging.info("evoformer layerstack finished")
 
       def run_evoformer(evoformer_input):
         evoformer_output, _ = evoformer_stack((evoformer_input, safe_subkey))
         return evoformer_output
 
       evoformer_output = run_evoformer(evoformer_input)
+      logging.info("run_evoformer finished")
 
       logging.info("c.evoformer_num_block: %d", len(c.evoformer_num_block)) 
 

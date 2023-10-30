@@ -135,7 +135,7 @@ class _LayerStack(hk.Module):
           logging.info('value: %s', str(value))
           #logging.info('context: %s', str(context))        
           logging.info("self._count: %d", self._count) 
-          logging.info("evoformer masks msa len: %d", self._unroll) 
+          logging.info("self._unroll: %d", self._unroll) 
           # self._unroll = unroll
           assert value.shape[value.ndim - trailing_dims] == count, (
               f'Attempting to use a parameter stack of size '
@@ -156,6 +156,7 @@ class _LayerStack(hk.Module):
             rng, rng_ = jax.random.split(rng)
             with hk.with_rng(rng_):
               logging.info("svejsan!!##")
+              logging.info("carry.x.shape: %d", carry.x.shape)
               out_x, z = self._call_wrapped(carry.x, *scanned.args_ys)
         logging.info("halloj!!")
         return LayerStackCarry(x=out_x, rng=rng), z

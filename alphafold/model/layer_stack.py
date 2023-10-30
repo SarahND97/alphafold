@@ -147,18 +147,18 @@ class _LayerStack(hk.Module):
           return next_getter(sliced_value)
 
         logging.info("hejsan") 
+        # kolla in den här getter-funktionen
         with hk.experimental.custom_getter(getter):
           if rng is None:
-            logging.info("svejsan") 
             out_x, z = self._call_wrapped(carry.x, *scanned.args_ys)
+            logging.info("svejsan") 
           else:
-            logging.info("svejsan!!") 
             rng, rng_ = jax.random.split(rng)
             with hk.with_rng(rng_):
-              logging.info("svejsan!!##")
               logging.info("carry.x: %s", str(carry.x))
               logging.info("*scanned.args_ys: %s", str(*scanned.args_ys))
               out_x, z = self._call_wrapped(carry.x, *scanned.args_ys)
+              logging.info("svejsan!!##")
         logging.info("halloj!!")
         return LayerStackCarry(x=out_x, rng=rng), z
 

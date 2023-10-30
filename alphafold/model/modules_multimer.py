@@ -766,10 +766,6 @@ class EmbeddingsAndEvoformer(hk.Module):
         evoformer_masks['msa'] = jnp.concatenate(
             [evoformer_masks['msa'], template_masks], axis=0)
       
-      # breakthrough getting closer!! Maybe can have something to do with the empty templates?
-      logging.info("evoformer input msa len: %d", len(evoformer_input['msa'])) 
-      logging.info("evoformer masks msa len: %d", len(evoformer_masks['msa'])) 
-      logging.info("evoformer input len: %d", len(evoformer_input)) 
       evoformer_iteration = modules.EvoformerIteration(
           c.evoformer, gc, is_extra_msa=False, name='evoformer_iteration')
       logging.info("evoformer_iteration finished")
@@ -791,7 +787,7 @@ class EmbeddingsAndEvoformer(hk.Module):
 
       logging.info("str(c.evoformer_num_block): %s", str(c.evoformer_num_block)) # this is an int
       evoformer_stack = layer_stack.layer_stack(c.evoformer_num_block)(
-          evoformer_fn)
+          evoformer_fn) # kanske är något med den här funktionen
       
       logging.info("evoformer layerstack finished")
       logging.info("safe_subkey: %s", str(safe_subkey))
@@ -800,6 +796,11 @@ class EmbeddingsAndEvoformer(hk.Module):
         evoformer_output, _ = evoformer_stack((evoformer_input, safe_subkey))
         return evoformer_output
 
+      # breakthrough getting closer!! Maybe can have something to do with the empty templates?
+      logging.info("evoformer input msa len: %d", len(evoformer_input['msa'])) 
+      logging.info("evoformer masks msa len: %d", len(evoformer_masks['msa'])) 
+      logging.info("evoformer input len: %d", len(evoformer_input)) 
+      logging.info("evoformer input str: %s", str(evoformer_input)) 
       evoformer_output = run_evoformer(evoformer_input)
       logging.info("run_evoformer finished")
 

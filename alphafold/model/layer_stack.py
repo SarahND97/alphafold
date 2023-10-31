@@ -132,7 +132,9 @@ class _LayerStack(hk.Module):
         def getter(next_getter, value, context):
           # Getter slices the full param at the current loop index.
           trailing_dims = len(context.original_shape) + 1
+          # where does value come from???
           logging.info('value: %s', str(value))
+          logging.info('context.originalshape: %d', len(context.original_shape))
           #logging.info('context: %s', str(context))        
           logging.info("self._count: %d", self._count) 
           logging.info("self._unroll: %d", self._unroll) 
@@ -154,9 +156,13 @@ class _LayerStack(hk.Module):
             logging.info("svejsan") 
           else:
             rng, rng_ = jax.random.split(rng)
-            with hk.with_rng(rng_):
+            with hk.with_rng(rng_): # rng is just some kind of random key
+              # jag behöver på något sätt stoppa parameterstack från att bli 48 
               logging.info("carry.x: %s", str(carry.x))
+              logging.info("carry.x: %s", str(carry.x['msa']))
+              logging.info("carry.x: %s", str(carry.x['pair']))
               logging.info("*scanned.args_ys: %s", str(*scanned.args_ys))
+              # direkt efter det här är det 135 
               out_x, z = self._call_wrapped(carry.x, *scanned.args_ys)
               logging.info("svejsan!!##")
         logging.info("halloj!!")

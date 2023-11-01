@@ -135,6 +135,7 @@ class _LayerStack(hk.Module):
           # where does value come from???
           # check next_getter next
           logging.info('value: %s', str(value))
+          logging.info('next_getter: %s', str(next_getter))
           logging.info('context.originalshape: %d', len(context.original_shape))
           #logging.info('context: %s', str(context))        
           logging.info("self._count: %d", self._count) 
@@ -163,7 +164,6 @@ class _LayerStack(hk.Module):
               logging.info("carry.x: %s", str(carry.x[0]))
               logging.info("carry.x[0][0]: %s", str(carry.x[0][0]))
               logging.info("carry.x[0][1]: %s", str(carry.x[0][1]))
-              logging.info("carry.x[0][2]: %s", str(carry.x[0][2]))
               logging.info("*scanned.args_ys: %s", str(*scanned.args_ys))
               # direkt efter det här är det 135 
               out_x, z = self._call_wrapped(carry.x, *scanned.args_ys)

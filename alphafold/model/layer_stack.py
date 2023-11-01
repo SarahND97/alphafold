@@ -133,6 +133,7 @@ class _LayerStack(hk.Module):
           # Getter slices the full param at the current loop index.
           trailing_dims = len(context.original_shape) + 1
           # where does value come from???
+          # check next_getter next
           logging.info('value: %s', str(value))
           logging.info('context.originalshape: %d', len(context.original_shape))
           #logging.info('context: %s', str(context))        
@@ -159,8 +160,8 @@ class _LayerStack(hk.Module):
             with hk.with_rng(rng_): # rng is just some kind of random key
               # jag behöver på något sätt stoppa parameterstack från att bli 48 
               logging.info("carry.x: %s", str(carry.x))
-              logging.info("carry.x: %s", str(carry.x['msa']))
-              logging.info("carry.x: %s", str(carry.x['pair']))
+              logging.info("carry.x: %s", str(carry.x[0]['msa']))
+              logging.info("carry.x: %s", str(carry.x[1]['pair']))
               logging.info("*scanned.args_ys: %s", str(*scanned.args_ys))
               # direkt efter det här är det 135 
               out_x, z = self._call_wrapped(carry.x, *scanned.args_ys)

@@ -181,6 +181,7 @@ class LayerNorm(hk.LayerNorm):
     if self._temp_create_scale:
       logging.info("######### _temp_create_scale #############################")
       logging.info("self.scale_init: %s", str(self.scale_init))
+      logging.info("param_shape: %s", str(param_shape))
       scale = hk.get_parameter(
           'scale', param_shape, x.dtype, init=self.scale_init)
       logging.info("scale: %s', str(scale)")

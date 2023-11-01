@@ -15,11 +15,11 @@
 """A collection of common Haiku modules for use in protein folding."""
 import numbers
 from typing import Union, Sequence
+from absl import logging
 
 import haiku as hk
 import jax.numpy as jnp
 import numpy as np
-
 
 # Constant from scipy.stats.truncnorm.std(a=-2, b=2, loc=0., scale=1.)
 TRUNCATED_NORMAL_STDDEV_FACTOR = np.asarray(.87962566103423978,
@@ -163,11 +163,14 @@ class LayerNorm(hk.LayerNorm):
   def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
     # SARAH: this could be something
     is_bf16 = (x.dtype == jnp.bfloat16)
+    logging.info("####################### LayerNorm ######################################")
+    logging.info('x: %s', str(x))
     if is_bf16:
       x = x.astype(jnp.float32)
-
+    logging.info('x.shape: %s', str(x.shape))
     param_axis = self.param_axis[0] if self.param_axis else -1
     param_shape = (x.shape[param_axis],)
+    logging.info('param_shape: %d', param_shape)
     
     param_broadcast_shape = [1] * x.ndim
     param_broadcast_shape[param_axis] = x.shape[param_axis]

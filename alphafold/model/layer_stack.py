@@ -161,7 +161,9 @@ class _LayerStack(hk.Module):
               # jag behöver på något sätt stoppa parameterstack från att bli 48 
               logging.info("carry.x: %s", str(carry.x))
               logging.info("carry.x: %s", str(carry.x[0]))
-              logging.info("carry.x: %s", str(carry.x[1]))
+              logging.info("carry.x[0][0]: %s", str(carry.x[0][0]))
+              logging.info("carry.x[0][1]: %s", str(carry.x[0][1]))
+              logging.info("carry.x[0][2]: %s", str(carry.x[0][2]))
               logging.info("*scanned.args_ys: %s", str(*scanned.args_ys))
               # direkt efter det här är det 135 
               out_x, z = self._call_wrapped(carry.x, *scanned.args_ys)

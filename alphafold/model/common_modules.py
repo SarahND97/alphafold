@@ -175,24 +175,26 @@ class LayerNorm(hk.LayerNorm):
     param_broadcast_shape = [1] * x.ndim
     logging.info('param_broadcast_shape: %s', str(param_broadcast_shape))
     param_broadcast_shape[param_axis] = x.shape[param_axis]
+    logging.info('param_broadcast_shape #2: %s', str(param_broadcast_shape))
     scale = None
     offset = None
     if self._temp_create_scale:
+      logging.info("######### _temp_create_scale #############################")
       scale = hk.get_parameter(
           'scale', param_shape, x.dtype, init=self.scale_init)
       scale = scale.reshape(param_broadcast_shape)
-
     if self._temp_create_offset:
+      logging.info("_temp_create_offset")
       offset = hk.get_parameter(
           'offset', param_shape, x.dtype, init=self.offset_init)
       offset = offset.reshape(param_broadcast_shape)
-
+    logging.info("######### Finito #############################")
     logging.info('scale: %s', str(scale))
     logging.info('offset: %s', str(offset))
     out = super().__call__(x, scale=scale, offset=offset)
 
     if is_bf16:
       out = out.astype(jnp.bfloat16)
-
+    logging.info("######### RETURN #############################")
     return out
   

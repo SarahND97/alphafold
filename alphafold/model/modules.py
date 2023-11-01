@@ -1050,7 +1050,7 @@ class PredictedLDDTHead(hk.Module):
         * 'logits': logits of shape [N_res, N_bins] with
             (unnormalized) log probabilies of binned predicted lDDT.
     """
-    act = representations['structure_module']
+    # act = representations['structure_module']
 
     act = common_modules.LayerNorm(
         axis=[-1],

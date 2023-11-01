@@ -278,7 +278,7 @@ def predict_structure(
     model_random_seed = model_index + random_seed * num_models
     processed_feature_dict = model_runner.process_features(
         feature_dict, random_seed=model_random_seed)
-    logging.info("##### Features processed ###################")
+    logging.info("##### Features processed ###################") # this gets run
     timings[f'process_features_{model_name}'] = time.time() - t_0
 
     t_0 = time.time()

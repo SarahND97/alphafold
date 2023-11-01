@@ -15,7 +15,6 @@
 """A collection of common Haiku modules for use in protein folding."""
 import numbers
 from typing import Union, Sequence
-from absl import logging
 
 import haiku as hk
 import jax.numpy as jnp
@@ -163,41 +162,26 @@ class LayerNorm(hk.LayerNorm):
   def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
     # SARAH: this could be something
     is_bf16 = (x.dtype == jnp.bfloat16)
-    logging.info("####################### LayerNorm ######################################")
-    logging.info('x: %s', str(x))
     if is_bf16:
       x = x.astype(jnp.float32)
-    logging.info('x.shape: %s', str(x.shape))
     param_axis = self.param_axis[0] if self.param_axis else -1
     param_shape = (x.shape[param_axis],)
-    logging.info('param_shape: %s', str(param_shape))
     
     param_broadcast_shape = [1] * x.ndim
-    logging.info('param_broadcast_shape: %s', str(param_broadcast_shape))
     param_broadcast_shape[param_axis] = x.shape[param_axis]
-    logging.info('param_broadcast_shape #2: %s', str(param_broadcast_shape))
     scale = None
     offset = None
     if self._temp_create_scale:
-      logging.info("######### _temp_create_scale #############################")
-      logging.info("self.scale_init: %s", str(self.scale_init))
-      logging.info("param_shape: %s", str(param_shape))
       scale = hk.get_parameter(
           'scale', param_shape, x.dtype, init=self.scale_init)
-      logging.info("scale: %s', str(scale)")
       scale = scale.reshape(param_broadcast_shape)
     if self._temp_create_offset:
-      logging.info("_temp_create_offset")
       offset = hk.get_parameter(
           'offset', param_shape, x.dtype, init=self.offset_init)
       offset = offset.reshape(param_broadcast_shape)
-    logging.info("######### Finito #############################")
-    logging.info('scale: %s', str(scale))
-    logging.info('offset: %s', str(offset))
     out = super().__call__(x, scale=scale, offset=offset)
 
     if is_bf16:
       out = out.astype(jnp.bfloat16)
-    logging.info("######### RETURN #############################")
     return out
   

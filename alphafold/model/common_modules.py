@@ -170,9 +170,10 @@ class LayerNorm(hk.LayerNorm):
     logging.info('x.shape: %s', str(x.shape))
     param_axis = self.param_axis[0] if self.param_axis else -1
     param_shape = (x.shape[param_axis],)
-    logging.info('param_shape: %d', param_shape)
+    logging.info('param_shape: %s', str(param_shape))
     
     param_broadcast_shape = [1] * x.ndim
+    logging.info('param_broadcast_shape: %s', str(param_broadcast_shape))
     param_broadcast_shape[param_axis] = x.shape[param_axis]
     scale = None
     offset = None
@@ -186,6 +187,8 @@ class LayerNorm(hk.LayerNorm):
           'offset', param_shape, x.dtype, init=self.offset_init)
       offset = offset.reshape(param_broadcast_shape)
 
+    logging.info('scale: %s', str(scale))
+    logging.info('offset: %s', str(offset))
     out = super().__call__(x, scale=scale, offset=offset)
 
     if is_bf16:

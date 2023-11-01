@@ -319,57 +319,57 @@ class AlphaFoldIteration(hk.Module):
     # Compute representations for each MSA sample and average.
     embedding_module = EmbeddingsAndEvoformer(
         self.config.embeddings_and_evoformer, self.global_config)
-    # repr_shape = hk.eval_shape(
-    #     lambda: embedding_module(batch, is_training))
-    # representations = {
-    #     k: jnp.zeros(v.shape, v.dtype) for (k, v) in repr_shape.items()
-    # }
+    repr_shape = hk.eval_shape(
+        lambda: embedding_module(batch, is_training))
+    representations = {
+        k: jnp.zeros(v.shape, v.dtype) for (k, v) in repr_shape.items()
+    }
 
-    # def ensemble_body(x, unused_y):
-    #   """Add into representations ensemble."""
-    #   del unused_y
-    #   representations, safe_key = x
-    #   safe_key, safe_subkey = safe_key.split()
-    #   representations_update = embedding_module(
-    #       batch, is_training, safe_key=safe_subkey)
+    def ensemble_body(x, unused_y):
+      """Add into representations ensemble."""
+      del unused_y
+      representations, safe_key = x
+      safe_key, safe_subkey = safe_key.split()
+      representations_update = embedding_module(
+          batch, is_training, safe_key=safe_subkey)
 
-    #   for k in representations:
-    #     if k not in {'msa', 'true_msa', 'bert_mask'}:
-    #       representations[k] += representations_update[k] * (
-    #           1. / num_ensemble).astype(representations[k].dtype)
-    #     else:
-    #       representations[k] = representations_update[k]
+      for k in representations:
+        if k not in {'msa', 'true_msa', 'bert_mask'}:
+          representations[k] += representations_update[k] * (
+              1. / num_ensemble).astype(representations[k].dtype)
+        else:
+          representations[k] = representations_update[k]
 
-    #   return (representations, safe_key), None
+      return (representations, safe_key), None
 
-    # (representations, _), _ = hk.scan(
-    #     ensemble_body, (representations, safe_key), None, length=num_ensemble)
+    (representations, _), _ = hk.scan(
+        ensemble_body, (representations, safe_key), None, length=num_ensemble)
     
-    # # after evoformer is done we want to return the representations
+    # after evoformer is done we want to return the representations
 
-    # self.representations = representations
-    # self.batch = batch
-    # self.heads = {}
-    # for head_name, head_config in sorted(self.config.heads.items()):
-    #   if not head_config.weight:
-    #     continue  # Do not instantiate zero-weight heads.
+    self.representations = representations
+    self.batch = batch
+    self.heads = {}
+    for head_name, head_config in sorted(self.config.heads.items()):
+      if not head_config.weight:
+        continue  # Do not instantiate zero-weight heads.
 
-    #   head_factory = {
-    #       'masked_msa':
-    #           modules.MaskedMsaHead,
-    #       'distogram':
-    #           modules.DistogramHead,
-    #       # 'structure_module':
-    #       #     folding_multimer.StructureModule,
-    #       'predicted_aligned_error':
-    #           modules.PredictedAlignedErrorHead,
-    #       'predicted_lddt':
-    #           modules.PredictedLDDTHead,
-    #       'experimentally_resolved':
-    #           modules.ExperimentallyResolvedHead,
-    #   }[head_name]
-    #   self.heads[head_name] = (head_config,
-    #                            head_factory(head_config, self.global_config))
+      head_factory = {
+          'masked_msa':
+              modules.MaskedMsaHead,
+          'distogram':
+              modules.DistogramHead,
+          # 'structure_module':
+          #     folding_multimer.StructureModule,
+          'predicted_aligned_error':
+              modules.PredictedAlignedErrorHead,
+          'predicted_lddt':
+              modules.PredictedLDDTHead,
+          'experimentally_resolved':
+              modules.ExperimentallyResolvedHead,
+      }[head_name]
+      self.heads[head_name] = (head_config,
+                               head_factory(head_config, self.global_config))
 
     # structure_module_output = None
     # if 'entity_id' in batch and 'all_atom_positions' in batch:
@@ -408,7 +408,7 @@ class AlphaFoldIteration(hk.Module):
     #   # Will be used for ipTM computation.
     #   ret[name]['asym_id'] = batch['asym_id']
 
-    return embedding_module
+    return representations
 
 
 class AlphaFold(hk.Module):
@@ -428,42 +428,42 @@ class AlphaFold(hk.Module):
       safe_key=None):
 
     c = self.config
-    embeddings = AlphaFoldIteration(c, self.global_config)
+    impl = AlphaFoldIteration(c, self.global_config)
 
-    # if safe_key is None:
-    #   safe_key = prng.SafeKey(hk.next_rng_key())
-    # elif isinstance(safe_key, jnp.ndarray):
-    #   safe_key = prng.SafeKey(safe_key)
+    if safe_key is None:
+      safe_key = prng.SafeKey(hk.next_rng_key())
+    elif isinstance(safe_key, jnp.ndarray):
+      safe_key = prng.SafeKey(safe_key)
 
-    # assert isinstance(batch, dict)
-    # num_res = batch['aatype'].shape[0]
+    assert isinstance(batch, dict)
+    num_res = batch['aatype'].shape[0]
 
-    # def get_prev(ret):
-    #   new_prev = {
-    #       'prev_pos':
-    #           ret['structure_module']['final_atom_positions'],
-    #       'prev_msa_first_row': ret['representations']['msa_first_row'],
-    #       'prev_pair': ret['representations']['pair'],
-    #   }
-    #   return jax.tree_map(jax.lax.stop_gradient, new_prev)
+    def get_prev(ret):
+      new_prev = {
+          # 'prev_pos':
+          #     ret['structure_module']['final_atom_positions'],
+          'prev_msa_first_row': ret['representations']['msa_first_row'],
+          'prev_pair': ret['representations']['pair'],
+      }
+      return jax.tree_map(jax.lax.stop_gradient, new_prev)
 
-    # def apply_network(prev, safe_key):
-    #   recycled_batch = {**batch, **prev}
-    #   return impl(
-    #       batch=recycled_batch,
-    #       is_training=is_training,
-    #       safe_key=safe_key)
+    def apply_network(prev, safe_key):
+      recycled_batch = {**batch, **prev}
+      return impl(
+          batch=recycled_batch,
+          is_training=is_training,
+          safe_key=safe_key)
 
-    # prev = {}
-    # emb_config = self.config.embeddings_and_evoformer
-    # if emb_config.recycle_pos:
-    #   prev['prev_pos'] = jnp.zeros(
-    #       [num_res, residue_constants.atom_type_num, 3])
-    # if emb_config.recycle_features:
-    #   prev['prev_msa_first_row'] = jnp.zeros(
-    #       [num_res, emb_config.msa_channel])
-    #   prev['prev_pair'] = jnp.zeros(
-    #       [num_res, num_res, emb_config.pair_channel])
+    prev = {}
+    emb_config = self.config.embeddings_and_evoformer
+    if emb_config.recycle_pos:
+      prev['prev_pos'] = jnp.zeros(
+          [num_res, residue_constants.atom_type_num, 3])
+    if emb_config.recycle_features:
+      prev['prev_msa_first_row'] = jnp.zeros(
+          [num_res, emb_config.msa_channel])
+      prev['prev_pair'] = jnp.zeros(
+          [num_res, num_res, emb_config.pair_channel])
 
     # if self.config.num_recycle:
     #   if 'num_iter_recycling' in batch:
@@ -514,16 +514,16 @@ class AlphaFold(hk.Module):
     #         (0, prev, prev, safe_key))
     #else:
       # No recycling.
-    # num_recycles = 0
+    num_recycles = 0
 
-    # # Run extra iteration.
-    # ret = apply_network(prev=prev, safe_key=safe_key)
+    # Run extra iteration.
+    ret = apply_network(prev=prev, safe_key=safe_key)
 
-    # #if False:#not return_representations:
-    # #  del ret['representations']
-    # ret['num_recycles'] = num_recycles
+    #if False:#not return_representations:
+    #  del ret['representations']
+    ret['num_recycles'] = num_recycles
 
-    return embeddings
+    return ret
 
 
 class EmbeddingsAndEvoformer(hk.Module):

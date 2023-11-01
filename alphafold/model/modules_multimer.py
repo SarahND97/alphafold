@@ -319,6 +319,7 @@ class AlphaFoldIteration(hk.Module):
     # Compute representations for each MSA sample and average.
     embedding_module = EmbeddingsAndEvoformer(
         self.config.embeddings_and_evoformer, self.global_config)
+    logging.info("embedding module finished")
     repr_shape = hk.eval_shape(
         lambda: embedding_module(batch, is_training))
     representations = {
@@ -348,28 +349,28 @@ class AlphaFoldIteration(hk.Module):
     # after evoformer is done we want to return the representations
 
     self.representations = representations
-    self.batch = batch
-    self.heads = {}
-    for head_name, head_config in sorted(self.config.heads.items()):
-      if not head_config.weight:
-        continue  # Do not instantiate zero-weight heads.
+    # self.batch = batch
+    # self.heads = {}
+    # for head_name, head_config in sorted(self.config.heads.items()):
+    #   if not head_config.weight:
+    #     continue  # Do not instantiate zero-weight heads.
 
-      head_factory = {
-          'masked_msa':
-              modules.MaskedMsaHead,
-          'distogram':
-              modules.DistogramHead,
-          # 'structure_module':
-          #     folding_multimer.StructureModule,
-          'predicted_aligned_error':
-              modules.PredictedAlignedErrorHead,
-          'predicted_lddt':
-              modules.PredictedLDDTHead,
-          'experimentally_resolved':
-              modules.ExperimentallyResolvedHead,
-      }[head_name]
-      self.heads[head_name] = (head_config,
-                               head_factory(head_config, self.global_config))
+    #   head_factory = {
+    #       'masked_msa':
+    #           modules.MaskedMsaHead,
+    #       'distogram':
+    #           modules.DistogramHead,
+    #       # 'structure_module':
+    #       #     folding_multimer.StructureModule,
+    #       'predicted_aligned_error':
+    #           modules.PredictedAlignedErrorHead,
+    #       'predicted_lddt':
+    #           modules.PredictedLDDTHead,
+    #       'experimentally_resolved':
+    #           modules.ExperimentallyResolvedHead,
+    #   }[head_name]
+    #   self.heads[head_name] = (head_config,
+    #                            head_factory(head_config, self.global_config))
 
     # structure_module_output = None
     # if 'entity_id' in batch and 'all_atom_positions' in batch:
@@ -514,14 +515,14 @@ class AlphaFold(hk.Module):
     #         (0, prev, prev, safe_key))
     #else:
       # No recycling.
-    num_recycles = 0
+    # num_recycles = 0
 
     # Run extra iteration.
     ret = apply_network(prev=prev, safe_key=safe_key)
 
     #if False:#not return_representations:
     #  del ret['representations']
-    ret['num_recycles'] = num_recycles
+    #ret['num_recycles'] = num_recycles
 
     return ret
 
@@ -828,6 +829,7 @@ class EmbeddingsAndEvoformer(hk.Module):
         if v.dtype == jnp.bfloat16:
           output[k] = v.astype(jnp.float32)
 
+    logging.info("all of evoformer finished")
     return output
 
 

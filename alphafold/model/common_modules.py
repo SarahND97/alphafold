@@ -180,8 +180,10 @@ class LayerNorm(hk.LayerNorm):
     offset = None
     if self._temp_create_scale:
       logging.info("######### _temp_create_scale #############################")
+      logging.info("self.scale_init: %s", str(self.scale_init))
       scale = hk.get_parameter(
           'scale', param_shape, x.dtype, init=self.scale_init)
+      logging.info("scale: %s', str(scale)")
       scale = scale.reshape(param_broadcast_shape)
     if self._temp_create_offset:
       logging.info("_temp_create_offset")

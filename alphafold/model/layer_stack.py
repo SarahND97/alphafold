@@ -134,12 +134,12 @@ class _LayerStack(hk.Module):
           trailing_dims = len(context.original_shape) + 1
           # where does value come from???
           # check next_getter next
-          logging.info('value: %s', str(value))
-          logging.info('next_getter: %s', str(next_getter))
-          logging.info('context.originalshape: %d', len(context.original_shape))
-          #logging.info('context: %s', str(context))        
-          logging.info("self._count: %d", self._count) 
-          logging.info("self._unroll: %d", self._unroll) 
+          # logging.info('value: %s', str(value))
+          # logging.info('next_getter: %s', str(next_getter))
+          # # logging.info('context.originalshape: %d', len(context.original_shape))
+          # #logging.info('context: %s', str(context))        
+          # logging.info("self._count: %d", self._count) 
+          # logging.info("self._unroll: %d", self._unroll) 
           # self._unroll = unroll
           assert value.shape[value.ndim - trailing_dims] == count, (
               f'Attempting to use a parameter stack of size '
@@ -159,16 +159,16 @@ class _LayerStack(hk.Module):
           else:
             rng, rng_ = jax.random.split(rng)
             with hk.with_rng(rng_): # rng is just some kind of random key
-              # jag behöver på något sätt stoppa parameterstack från att bli 48 
-              #logging.info("carry.x: %s", str(carry.x))
-              logging.info("carry.x: %s", str(carry.x[0]))
-              logging.info("carry.x[0][0]: %s", str(carry.x[0][0]))
-              logging.info("carry.x[0][1]: %s", str(carry.x[0][1]))
+              # # jag behöver på något sätt stoppa parameterstack från att bli 48 
+              # #logging.info("carry.x: %s", str(carry.x))
+              # logging.info("carry.x: %s", str(carry.x[0]))
+              # logging.info("carry.x[0][0]: %s", str(carry.x[0][0]))
+              # logging.info("carry.x[0][1]: %s", str(carry.x[0][1]))
               #logging.info("*scanned.args_ys: %s", str(*scanned.args_ys))
               # _call_wrapped -> layerNorm -> (eventuella mellansteg) -> 135 
               out_x, z = self._call_wrapped(carry.x, *scanned.args_ys)
-              logging.info("svejsan!!##")
-        logging.info("halloj!!")
+        #       logging.info("svejsan!!##")
+        # logging.info("halloj!!")
         return LayerStackCarry(x=out_x, rng=rng), z
 
       carry = LayerStackCarry(x=x, rng=hk.maybe_next_rng_key())

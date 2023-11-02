@@ -75,9 +75,9 @@ class RunModel:
       def _forward_fn(batch):
         logging.info("self.config.model: %s", str(self.config.model))
         model = modules_multimer.AlphaFold(self.config.model)
-        return model(
-            batch,
-            is_training=False)
+        result = model(batch,is_training=False)
+        logging.info("###################### model finished ###########################")
+        return result
     else:
       def _forward_fn(batch):
         model = modules.AlphaFold(self.config.model)

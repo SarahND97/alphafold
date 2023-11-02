@@ -167,11 +167,12 @@ class RunModel:
     logging.info('Running predict with shape(feat) = %s',
                  tree.map_structure(lambda x: x.shape, feat))
     result = self.apply(self.params, jax.random.PRNGKey(random_seed), feat)
-
+    logging.info("################### Self.apply finished #################################")
     # This block is to ensure benchmark timings are accurate. Some blocking is
     # already happening when computing get_confidence_metrics, and this ensures
     # all outputs are blocked on.
     jax.tree_map(lambda x: x.block_until_ready(), result)
+    logging.info("################### jax.tree_map finished #################################")
     result.update(
         get_confidence_metrics(result, multimer_mode=self.multimer_mode))
     logging.info('Output shape was %s',

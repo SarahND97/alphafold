@@ -73,6 +73,7 @@ class RunModel:
 
     if self.multimer_mode:
       def _forward_fn(batch):
+        logging.info("self.config.model: %s", str(self.config.model))
         model = modules_multimer.AlphaFold(self.config.model)
         return model(
             batch,

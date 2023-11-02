@@ -345,10 +345,12 @@ class AlphaFoldIteration(hk.Module):
 
     (representations, _), _ = hk.scan(
         ensemble_body, (representations, safe_key), None, length=num_ensemble)
-    
+    logging.info("############ esemble body finished ###################")
     # after evoformer is done we want to return the representations
 
     self.representations = representations
+    logging.info("############ self.representations = representations ###################")
+
     # self.batch = batch
     # self.heads = {}
     # for head_name, head_config in sorted(self.config.heads.items()):
@@ -523,7 +525,7 @@ class AlphaFold(hk.Module):
     #if False:#not return_representations:
     #  del ret['representations']
     #ret['num_recycles'] = num_recycles
-
+    logging.info("################## return ret ############################")
     return ret
 
 

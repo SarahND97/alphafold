@@ -73,7 +73,6 @@ class RunModel:
 
     if self.multimer_mode:
       def _forward_fn(batch):
-        logging.info("##################### Inside forward_fn ##############################")
         model = modules_multimer.AlphaFold(self.config.model)
         return model(
             batch,
@@ -165,9 +164,9 @@ class RunModel:
     # TODO: make sure that the representations are added to the results here!!!!
     logging.info("################### Init params #################################")
     self.init_params(feat)
-    logging.info('Running predict with shape(feat) = %s',
-                 tree.map_structure(lambda x: x.shape, feat))
-    result = self.apply(self.params, jax.random.PRNGKey(random_seed), feat)
+    logging.info('Running predict with shape(feat) = %s', tree.map_structure(lambda x: x.shape, feat))
+    logging.info("################### Self.apply start #################################")
+    result = self.apply(self.params, jax.random.PRNGKey(random_seed), feat) # this is where it goes wrong
     logging.info("################### Self.apply finished #################################")
     # This block is to ensure benchmark timings are accurate. Some blocking is
     # already happening when computing get_confidence_metrics, and this ensures

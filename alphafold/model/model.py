@@ -76,7 +76,7 @@ class RunModel:
 
     if self.multimer_mode:
       def _forward_fn(batch):
-        logging.info("self.config.model: %s", str(self.config.model))
+        #logging.info("self.config.model: %s", str(self.config.model))
         model = modules_multimer.AlphaFold(self.config.model)
         result = model(batch,is_training=False)
         # this happens after return ret
@@ -179,8 +179,8 @@ class RunModel:
     self.init_params(feat)
     logging.info('Running predict with shape(feat) = %s', tree.map_structure(lambda x: x.shape, feat))
     logging.info("################### Self.apply start #################################")
-    logging.info("feat: %s", str(feat))
-    logging.info("self.params: %s", str(self.params))
+    logging.info("feat: %s", str(feat.shape))
+    #logging.info("self.params: %s", str(self.params))
     result = self.apply(self.params, jax.random.PRNGKey(random_seed), feat) # this is where it goes wrong
     logging.info("################### Self.apply finished #################################")
     # This block is to ensure benchmark timings are accurate. Some blocking is

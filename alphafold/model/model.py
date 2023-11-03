@@ -83,7 +83,7 @@ class RunModel:
         # this does happen 
         logging.info("###################### model(batch..) finished ###########################") 
         logging.info("Result: %s", result)
-        jax.numpy.save("Result['msa']: %s", result['msa'])
+        logging.info("Result['msa']: %s", result['msa'])
         result_output_path = output_dir+"representations.npy"#os.path.join(output_dir, f'representations.npy')
         #with open(result_output_path, 'wb') as f:
           # pickle.dump(result, f, protocol=4)

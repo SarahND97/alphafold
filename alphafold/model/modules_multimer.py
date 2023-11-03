@@ -350,29 +350,29 @@ class AlphaFoldIteration(hk.Module):
 
     self.representations = representations
     logging.info("############ self.representations = representations ###################")
+    logging.info("########### Trying to uncomment self.batch = batch to see if it helps #################")
+    self.batch = batch
+    self.heads = {}
+    for head_name, head_config in sorted(self.config.heads.items()):
+      if not head_config.weight:
+        continue  # Do not instantiate zero-weight heads.
 
-    # self.batch = batch
-    # self.heads = {}
-    # for head_name, head_config in sorted(self.config.heads.items()):
-    #   if not head_config.weight:
-    #     continue  # Do not instantiate zero-weight heads.
-
-    #   head_factory = {
-    #       'masked_msa':
-    #           modules.MaskedMsaHead,
-    #       'distogram':
-    #           modules.DistogramHead,
-    #       # 'structure_module':
-    #       #     folding_multimer.StructureModule,
-    #       'predicted_aligned_error':
-    #           modules.PredictedAlignedErrorHead,
-    #       'predicted_lddt':
-    #           modules.PredictedLDDTHead,
-    #       'experimentally_resolved':
-    #           modules.ExperimentallyResolvedHead,
-    #   }[head_name]
-    #   self.heads[head_name] = (head_config,
-    #                            head_factory(head_config, self.global_config))
+      head_factory = {
+          'masked_msa':
+              modules.MaskedMsaHead,
+          'distogram':
+              modules.DistogramHead,
+          # 'structure_module':
+          #     folding_multimer.StructureModule,
+          'predicted_aligned_error':
+              modules.PredictedAlignedErrorHead,
+          'predicted_lddt':
+              modules.PredictedLDDTHead,
+          'experimentally_resolved':
+              modules.ExperimentallyResolvedHead,
+      }[head_name]
+      self.heads[head_name] = (head_config,
+                               head_factory(head_config, self.global_config))
 
     # structure_module_output = None
     # if 'entity_id' in batch and 'all_atom_positions' in batch:

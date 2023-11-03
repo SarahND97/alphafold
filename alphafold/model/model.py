@@ -26,7 +26,9 @@ import ml_collections
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tree
-
+import os
+import pickle
+import sys
 
 def get_confidence_metrics(
     prediction_result: Mapping[str, Any],
@@ -66,6 +68,7 @@ class RunModel:
 
   def __init__(self,
                config: ml_collections.ConfigDict,
+               output_dir: str,
                params: Optional[Mapping[str, Mapping[str, jax.Array]]] = None):
     self.config = config
     self.params = params
@@ -80,6 +83,10 @@ class RunModel:
         # this does happen 
         logging.info("###################### model(batch..) finished ###########################") 
         logging.info("Result: %s", result)
+        result_output_path = os.path.join(output_dir, f'representations.pkl')
+        with open(result_output_path, 'wb') as f:
+          pickle.dump(result, f, protocol=4)
+        sys.exit()
         return result
     else:
       def _forward_fn(batch):

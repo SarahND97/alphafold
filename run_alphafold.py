@@ -302,17 +302,19 @@ def predict_structure(
           'Total JAX model %s on %s predict time (excludes compilation time): %.1fs',
           model_name, fasta_name, t_diff)
 
-    plddt = prediction_result['plddt']
-    _save_confidence_json_file(plddt, output_dir, model_name)
-    ranking_confidences[model_name] = prediction_result['ranking_confidence']
+    # since we don't have any plddt let's comment it out
 
-    if (
-        'predicted_aligned_error' in prediction_result
-        and 'max_predicted_aligned_error' in prediction_result
-    ):
-      pae = prediction_result['predicted_aligned_error']
-      max_pae = prediction_result['max_predicted_aligned_error']
-      _save_pae_json_file(pae, float(max_pae), output_dir, model_name)
+    # plddt = prediction_result['plddt']
+    # _save_confidence_json_file(plddt, output_dir, model_name)
+    # ranking_confidences[model_name] = prediction_result['ranking_confidence']
+
+    # if (
+    #     'predicted_aligned_error' in prediction_result
+    #     and 'max_predicted_aligned_error' in prediction_result
+    # ):
+    #   pae = prediction_result['predicted_aligned_error']
+    #   max_pae = prediction_result['max_predicted_aligned_error']
+    #   _save_pae_json_file(pae, float(max_pae), output_dir, model_name)
 
     # Remove jax dependency from results.
     np_prediction_result = _jnp_to_np(dict(prediction_result))
@@ -324,8 +326,8 @@ def predict_structure(
 
     # Add the predicted LDDT in the b-factor column.
     # Note that higher predicted LDDT value means higher model confidence.
-    plddt_b_factors = np.repeat(
-        plddt[:, None], residue_constants.atom_type_num, axis=-1)
+    # plddt_b_factors = np.repeat(
+    #     plddt[:, None], residue_constants.atom_type_num, axis=-1)
     """
     unrelaxed_protein = protein.from_prediction(
         features=processed_feature_dict,
@@ -415,15 +417,15 @@ def predict_structure(
     f.write(json.dumps(
         {label: ranking_confidences, 'order': ranked_order}, indent=4))
   """ 
-  logging.info('Final timings for %s: %s', fasta_name, timings)
+  # logging.info('Final timings for %s: %s', fasta_name, timings)
 
-  timings_output_path = os.path.join(output_dir, 'timings.json')
-  with open(timings_output_path, 'w') as f:
-    f.write(json.dumps(timings, indent=4))
-  if models_to_relax != ModelsToRelax.NONE:
-    relax_metrics_path = os.path.join(output_dir, 'relax_metrics.json')
-    with open(relax_metrics_path, 'w') as f:
-      f.write(json.dumps(relax_metrics, indent=4))
+  # timings_output_path = os.path.join(output_dir, 'timings.json')
+  # with open(timings_output_path, 'w') as f:
+  #   f.write(json.dumps(timings, indent=4))
+  # if models_to_relax != ModelsToRelax.NONE:
+  #   relax_metrics_path = os.path.join(output_dir, 'relax_metrics.json')
+  #   with open(relax_metrics_path, 'w') as f:
+  #     f.write(json.dumps(relax_metrics, indent=4))
 
 
 def main(argv):

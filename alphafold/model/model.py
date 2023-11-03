@@ -83,9 +83,11 @@ class RunModel:
         # this does happen 
         logging.info("###################### model(batch..) finished ###########################") 
         logging.info("Result: %s", result)
-        result_output_path = os.path.join(output_dir, f'representations.pkl')
-        with open(result_output_path, 'wb') as f:
-          pickle.dump(result, f, protocol=4)
+        jax.numpy.save("Result['msa']: %s", result['msa'])
+        result_output_path = output_dir+"representations.npy"#os.path.join(output_dir, f'representations.npy')
+        #with open(result_output_path, 'wb') as f:
+          # pickle.dump(result, f, protocol=4)
+        jax.numpy.save(result_output_path, result['msa'])
         sys.exit()
         return result
     else:

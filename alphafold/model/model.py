@@ -188,8 +188,8 @@ class RunModel:
     # all outputs are blocked on.
     jax.tree_map(lambda x: x.block_until_ready(), result)
     logging.info("################### jax.tree_map finished #################################")
-    result.update(
-        get_confidence_metrics(result, multimer_mode=self.multimer_mode))
+    # result.update(
+    #     get_confidence_metrics(result, multimer_mode=self.multimer_mode))
     logging.info('Output shape was %s',
                  tree.map_structure(lambda x: x.shape, result))
     return result

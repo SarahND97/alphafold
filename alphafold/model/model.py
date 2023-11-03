@@ -84,11 +84,11 @@ class RunModel:
         logging.info("###################### model(batch..) finished ###########################") 
         logging.info("Result: %s", result)
         logging.info("Result['msa']: %s", result['msa'])
-        result_output_path = output_dir+"representations.npy"#os.path.join(output_dir, f'representations.npy')
+        #result_output_path = output_dir+"representations.npy"#os.path.join(output_dir, f'representations.npy')
         #with open(result_output_path, 'wb') as f:
           # pickle.dump(result, f, protocol=4)
-        jax.numpy.save(result_output_path, result['msa'])
-        sys.exit()
+        # jax.numpy.save(result_output_path, result['msa'])
+        # sys.exit()
         return result
     else:
       def _forward_fn(batch):

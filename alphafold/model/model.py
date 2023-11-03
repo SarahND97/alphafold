@@ -170,6 +170,8 @@ class RunModel:
     self.init_params(feat)
     logging.info('Running predict with shape(feat) = %s', tree.map_structure(lambda x: x.shape, feat))
     logging.info("################### Self.apply start #################################")
+    logging.info("feat: %s", str(feat))
+    logging.info("self.params: %s", str(self.params))
     result = self.apply(self.params, jax.random.PRNGKey(random_seed), feat) # this is where it goes wrong
     logging.info("################### Self.apply finished #################################")
     # This block is to ensure benchmark timings are accurate. Some blocking is

@@ -525,7 +525,7 @@ def main(argv):
     model_params = data.get_model_haiku_params(
         model_name=model_name, data_dir=FLAGS.data_dir)
     model_config.model.num_recycle=0 # want zero recycles
-    model_runner = model.RunModel(model_config, model_params)
+    model_runner = model.RunModel(config=model_config, params=model_params, output_dir=FLAGS.output_dir)
     for i in range(num_predictions_per_model):
       model_runners[f'{model_name}_pred_{i}'] = model_runner
 

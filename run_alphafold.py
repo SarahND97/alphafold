@@ -256,6 +256,7 @@ def predict_structure(
   # make it possible to have msas in a different place than 
   # where the results will be put
   if FLAGS.use_precomputed_msas and FLAGS.msa_dir:
+    logging.info("msa_output_dir=FLAGS.msa_dir")
     msa_output_dir=FLAGS.msa_dir
 
   # Get features.

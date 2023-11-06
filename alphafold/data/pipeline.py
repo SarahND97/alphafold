@@ -158,7 +158,7 @@ class DataPipeline:
     input_sequence = input_seqs[0]
     input_description = input_descs[0]
     num_res = len(input_sequence)
-
+    logging.info("msa_output_dir: %s", msa_output_dir+'uniref90_hits.sto')
     uniref90_out_path = os.path.join(msa_output_dir, 'uniref90_hits.sto')
     jackhmmer_uniref90_result = run_msa_tool(
         msa_runner=self.jackhmmer_uniref90_runner,

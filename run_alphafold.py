@@ -250,7 +250,7 @@ def predict_structure(
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
   msa_output_dir = os.path.join(output_dir, 'msas')
-  if not os.path.exists(msa_output_dir) and FLAGS.use_precomputed_msas:
+  if not os.path.exists(msa_output_dir) and not FLAGS.use_precomputed_msas:
     os.makedirs(msa_output_dir)
 
   # make it possible to have msas in a different place than 

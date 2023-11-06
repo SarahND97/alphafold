@@ -63,6 +63,8 @@ flags.DEFINE_list(
 flags.DEFINE_string('data_dir', None, 'Path to directory of supporting data.')
 flags.DEFINE_string('output_dir', None, 'Path to a directory that will '
                     'store the results.')
+flags.DEFINE_string('msa_dir', None, 'Path to a directory that stores precomputed msas,'
+                    'if None the msas are assumed to be stored in the output_dir.')
 flags.DEFINE_string('jackhmmer_binary_path', shutil.which('jackhmmer'),
                     'Path to the JackHMMER executable.')
 flags.DEFINE_string('hhblits_binary_path', shutil.which('hhblits'),
@@ -248,8 +250,13 @@ def predict_structure(
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
   msa_output_dir = os.path.join(output_dir, 'msas')
-  if not os.path.exists(msa_output_dir):
+  if not os.path.exists(msa_output_dir) and FLAGS.use_precomputed_msas:
     os.makedirs(msa_output_dir)
+
+  # make it possible to have msas in a different place than 
+  # where the results will be put
+  if FLAGS.use_precomputed_msas and FLAGS.msa_dir:
+    msa_output_dir=FLAGS.msa_dir
 
   # Get features.
   t_0 = time.time()

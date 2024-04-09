@@ -191,6 +191,9 @@ flags.DEFINE_integer(
     "models then there will be 10 predictions per input. "
     "Note: this FLAG only applies if model_preset=multimer",
 )
+# parser.add_argument("-c", "--conditional-option", action="store_true", help="Conditional Option")
+# parser.add_argument("-d", "--dependent-argument", required=False, help="Dependent Argument")
+
 flags.DEFINE_boolean(
     "use_precomputed_msas",
     True,
@@ -335,7 +338,7 @@ def predict_structure(
     # make it possible to have msas in a different place than
     # where the results will be put
     if FLAGS.use_precomputed_msas and FLAGS.msa_dir:
-        logging.info("msa_output_dir=FLAGS.msa_dir")
+        logging.info("msa_output_dir=" + FLAGS.msa_dir)
         msa_output_dir = FLAGS.msa_dir
 
     # Get features.
@@ -540,21 +543,49 @@ def main(argv):
             )
 
     use_small_bfd = FLAGS.db_preset == "reduced_dbs"
-    _check_flag("small_bfd_database_path", "db_preset", should_be_set=use_small_bfd)
-    _check_flag("bfd_database_path", "db_preset", should_be_set=not use_small_bfd)
-    _check_flag("uniref30_database_path", "db_preset", should_be_set=not use_small_bfd)
+    if not FLAGS.use_precomputed_msas:
+        _check_flag("small_bfd_database_path", "db_preset", should_be_set=use_small_bfd)
+        _check_flag("bfd_database_path", "db_preset", should_be_set=not use_small_bfd)
+        _check_flag(
+            "uniref30_database_path", "db_preset", should_be_set=not use_small_bfd
+        )
+
+    # If the msas are not pre-computed then we need the paths to the databases
+    _check_flag(
+        "uniref90_database_path",
+        "not use_precomputed_msas",
+        should_be_set=not FLAGS.use_precomputed_msas,
+    )
+    _check_flag(
+        "mgnify_database_path",
+        "db_preset",
+        should_be_set=not FLAGS.use_precomputed_msas,
+    )
+    _check_flag(
+        "max_template_date",
+        "not use_precomputed_msas",
+        should_be_set=not FLAGS.use_precomputed_msas,
+    )
+    _check_flag(
+        "max_template_date",
+        "not use_precomputed_msas",
+        should_be_set=not FLAGS.use_precomputed_msas,
+    )
 
     run_multimer_system = "multimer" in FLAGS.model_preset
     model_type = "Multimer" if run_multimer_system else "Monomer"
-    _check_flag(
-        "pdb70_database_path", "model_preset", should_be_set=not run_multimer_system
-    )
-    _check_flag(
-        "pdb_seqres_database_path", "model_preset", should_be_set=run_multimer_system
-    )
-    _check_flag(
-        "uniprot_database_path", "model_preset", should_be_set=run_multimer_system
-    )
+    if not FLAGS.use_precomputed_msas:
+        _check_flag(
+            "pdb70_database_path", "model_preset", should_be_set=not run_multimer_system
+        )
+        _check_flag(
+            "pdb_seqres_database_path",
+            "model_preset",
+            should_be_set=run_multimer_system,
+        )
+        _check_flag(
+            "uniprot_database_path", "model_preset", should_be_set=run_multimer_system
+        )
 
     if FLAGS.model_preset == "monomer_casp14":
         num_ensemble = 8
@@ -675,11 +706,11 @@ if __name__ == "__main__":
             "fasta_paths",
             "output_dir",
             "data_dir",
-            "uniref90_database_path",
-            "mgnify_database_path",
-            "template_mmcif_dir",
-            "max_template_date",
-            "obsolete_pdbs_path",
+            # "uniref90_database_path",
+            # "mgnify_database_path",
+            # "template_mmcif_dir",
+            # "max_template_date",
+            # "obsolete_pdbs_path",
             "use_gpu_relax",
         ]
     )

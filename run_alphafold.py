@@ -368,15 +368,15 @@ def predict_structure(
         processed_feature_dict = model_runner.process_features(
             feature_dict, random_seed=model_random_seed
         )
-        logging.info("##### Features processed ###################")  # this gets run
+        # logging.info("##### Features processed ###################")  # this gets run
         timings[f"process_features_{model_name}"] = time.time() - t_0
 
         t_0 = time.time()
-        logging.info("##### Start prediction ###################")
+        # logging.info("##### Start prediction ###################")
         prediction_result = model_runner.predict(
             processed_feature_dict, random_seed=model_random_seed
         )
-        logging.info("##### Predictions finished ###################")
+        # logging.info("##### Predictions finished ###################")
         t_diff = time.time() - t_0
         timings[f"predict_and_compile_{model_name}"] = t_diff
         logging.info(

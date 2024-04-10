@@ -79,6 +79,12 @@ flags.DEFINE_string(
     "if None the msas are assumed to be stored in the output_dir.",
 )
 flags.DEFINE_string(
+    "model_to_run",
+    "all",
+    "Choose a specific model that you want to run"
+    "choose between 1-5,all and random.",
+)
+flags.DEFINE_string(
     "jackhmmer_binary_path",
     shutil.which("jackhmmer"),
     "Path to the JackHMMER executable.",
@@ -315,6 +321,24 @@ def _save_pae_json_file(
     with open(pae_json_output_path, "w") as f:
         f.write(pae_json)
 
+def _model_config(model_name, num_predictions_per_model,run_multimer_system,num_ensemble):
+    model_runners = {}
+    model_config = config.model_config(model_name)
+    if run_multimer_system:
+        model_config.model.num_ensemble_eval = num_ensemble
+    else:
+        model_config.data.eval.num_ensemble = num_ensemble
+    model_params = data.get_model_haiku_params(
+        model_name=model_name, data_dir=FLAGS.data_dir
+    )
+    model_config.model.num_recycle = 0  # want zero recycles
+    model_runner = model.RunModel(
+        config=model_config, params=model_params, output_dir=FLAGS.output_dir
+    )
+    for i in range(num_predictions_per_model):
+        model_runners[f"{model_name}_pred_{i}"] = model_runner
+    return model_runners
+    
 
 def predict_structure(
     fasta_path: str,
@@ -658,24 +682,19 @@ def main(argv):
     else:
         num_predictions_per_model = 1
         data_pipeline = monomer_data_pipeline
-
+    
     model_runners = {}
     model_names = config.MODEL_PRESETS[FLAGS.model_preset]
-    for model_name in model_names:
-        model_config = config.model_config(model_name)
-        if run_multimer_system:
-            model_config.model.num_ensemble_eval = num_ensemble
-        else:
-            model_config.data.eval.num_ensemble = num_ensemble
-        model_params = data.get_model_haiku_params(
-            model_name=model_name, data_dir=FLAGS.data_dir
-        )
-        model_config.model.num_recycle = 0  # want zero recycles
-        model_runner = model.RunModel(
-            config=model_config, params=model_params, output_dir=FLAGS.output_dir
-        )
-        for i in range(num_predictions_per_model):
-            model_runners[f"{model_name}_pred_{i}"] = model_runner
+    # add here the ability to pick out one model
+
+    if FLAGS.model_to_run=="all":
+        for model_name in model_names:
+            model_runners = _model_config(model_name, num_predictions_per_model, run_multimer_system, num_ensemble)
+    elif FLAGS.model_to_run=="random":
+        model_runners = _model_config(random.choice(model_names), num_predictions_per_model, run_multimer_system, num_ensemble)
+    else:
+        model_int = int(FLAGS.model_to_run)
+        model_runners = _model_config(model_names[model_int], num_predictions_per_model, run_multimer_system, num_ensemble)
 
     logging.info("Have %d models: %s", len(model_runners), list(model_runners.keys()))
 

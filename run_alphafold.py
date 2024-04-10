@@ -69,6 +69,9 @@ flags.DEFINE_string("data_dir", None, "Path to directory of supporting data.")
 flags.DEFINE_string(
     "output_dir", None, "Path to a directory that will " "store the results."
 )
+flags.DEFINE_boolean(
+    "separate_output_dir", True, "Save the results separately according to protein name"
+)
 flags.DEFINE_string(
     "msa_dir",
     None,
@@ -328,7 +331,12 @@ def predict_structure(
     """Predicts structure using AlphaFold for the given sequence."""
     logging.info("Predicting %s", fasta_name)
     timings = {}
-    output_dir = os.path.join(output_dir_base, fasta_name)
+    # Introduce the option of saving all representations in the same dir
+    output_dir = ""
+    if FLAGS.separate_output_dir:
+        output_dir = os.path.join(output_dir_base, fasta_name)
+    else:
+        output_dir = output_dir_base
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     msa_output_dir = os.path.join(output_dir, "msas")
@@ -349,9 +357,9 @@ def predict_structure(
     timings["features"] = time.time() - t_0
 
     # Write out features as a pickled dictionary.
-    features_output_path = os.path.join(output_dir, "features.pkl")
-    with open(features_output_path, "wb") as f:
-        pickle.dump(feature_dict, f, protocol=4)
+    # features_output_path = os.path.join(output_dir, "features.pkl")
+    # with open(features_output_path, "wb") as f:
+    #     pickle.dump(feature_dict, f, protocol=4)
 
     unrelaxed_pdbs = {}
     unrelaxed_proteins = {}
@@ -416,7 +424,8 @@ def predict_structure(
         np_prediction_result = _jnp_to_np(dict(prediction_result))
 
         # Save the model outputs.
-        result_output_path = os.path.join(output_dir, f"result_{model_name}.pkl")
+        # add the name of the sequence here
+        result_output_path = os.path.join(output_dir, fasta_name+f"result_{model_name}.pkl")
         with open(result_output_path, "wb") as f:
             pickle.dump(np_prediction_result, f, protocol=4)
 

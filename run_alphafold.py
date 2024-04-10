@@ -425,7 +425,7 @@ def predict_structure(
 
         # Save the model outputs.
         # add the name of the sequence here
-        result_output_path = os.path.join(output_dir, fasta_name+f"result_{model_name}.pkl")
+        result_output_path = os.path.join(output_dir, fasta_name+f"_result_{model_name}.pkl")
         with open(result_output_path, "wb") as f:
             pickle.dump(np_prediction_result, f, protocol=4)
 

@@ -275,7 +275,6 @@ class DataPipeline:
             sequences=input_seqs, descriptions=input_descs
         )
         chain_id_map_path = os.path.join(msa_output_dir, "chain_id_map.json")
-        print(os.path.exists(chain_id_map_path))
         if not os.path.exists(chain_id_map_path):
             with open(chain_id_map_path, "w") as f:
                 chain_id_map_dict = {

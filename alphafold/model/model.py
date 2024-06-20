@@ -36,9 +36,9 @@ def get_confidence_metrics(
 ) -> Mapping[str, Any]:
     """Post processes prediction_result to get confidence metrics."""
     confidence_metrics = {}
-    confidence_metrics["plddt"] = confidence.compute_plddt(
-        prediction_result["predicted_lddt"]["logits"]
-    )
+    # confidence_metrics["plddt"] = confidence.compute_plddt(
+    #     prediction_result["predicted_lddt"]["logits"]
+    # )
     if "predicted_aligned_error" in prediction_result:
         confidence_metrics.update(
             confidence.compute_predicted_aligned_error(
@@ -59,13 +59,13 @@ def get_confidence_metrics(
                 asym_id=prediction_result["predicted_aligned_error"]["asym_id"],
                 interface=True,
             )
-            confidence_metrics["ranking_confidence"] = (
-                0.8 * confidence_metrics["iptm"] + 0.2 * confidence_metrics["ptm"]
-            )
+            # confidence_metrics["ranking_confidence"] = (
+            #     0.8 * confidence_metrics["iptm"] + 0.2 * confidence_metrics["ptm"]
+            # )
 
-    if not multimer_mode:
-        # Monomer models use mean pLDDT for model ranking.
-        confidence_metrics["ranking_confidence"] = np.mean(confidence_metrics["plddt"])
+    # if not multimer_mode:
+    #     # Monomer models use mean pLDDT for model ranking.
+    #     confidence_metrics["ranking_confidence"] = np.mean(confidence_metrics["plddt"])
 
     return confidence_metrics
 
@@ -214,9 +214,11 @@ class RunModel:
         # logging.info(
         #    "################### jax.tree_map finished #################################"
         # )
-        # result.update(
-        #     get_confidence_metrics(result, multimer_mode=self.multimer_mode))
         # logging.info(
         #    "Output shape was %s", tree.map_structure(lambda x: x.shape, result)
         # )
+        #confidence_metrics = get_confidence_metrics(result, multimer_mode=self.multimer_mode)
+        #result["iptm"] = confidence_metrics["iptm"]
+        result.update(
+            get_confidence_metrics(result, multimer_mode=self.multimer_mode))
         return result

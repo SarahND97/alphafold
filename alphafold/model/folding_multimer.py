@@ -438,7 +438,6 @@ class FoldIteration(hk.Module):
 
     # Transition
     input_act = act
-    logging.info("c.num_layer_in_transition: %d", c.num_layer_in_transition)
     for i in range(c.num_layer_in_transition):
       init = 'relu' if i < c.num_layer_in_transition - 1 else final_init
       act = common_modules.Linear(

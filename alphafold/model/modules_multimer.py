@@ -789,10 +789,19 @@ class EmbeddingsAndEvoformer(hk.Module):
             evoformer_iteration = modules.EvoformerIteration(
                 c.evoformer, gc, is_extra_msa=False, name="evoformer_iteration"
             )
+            def true_fun(c):
+                jax.debug.print("##### count: {}", c)
+                return c
+            
+            def false_fun(c):
+                return c
             
             def evoformer_fn(x):
                 act, safe_key, count = x
-                jax.debug.print("##### count: {}", count)
+                # jax.debug.print("##### count: {}", count)
+                jax.lax.cond(count == 10, true_fun, false_fun, count)
+                #if count==10:
+                    #jax.debug.print("##### count: {}", count)
                 safe_key, safe_subkey = safe_key.split()
                 evoformer_output = evoformer_iteration(
                     activations=act,

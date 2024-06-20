@@ -25,6 +25,7 @@ from typing import Sequence
 from absl import logging
 
 from alphafold.common import residue_constants
+from alphafold.common import confidence
 from alphafold.model import all_atom_multimer
 from alphafold.model import common_modules
 from alphafold.model import folding_multimer
@@ -355,47 +356,50 @@ class AlphaFoldIteration(hk.Module):
         #    "############ self.representations = representations ###################"
         # )
         # logging.info("########### Trying to uncomment self.batch = batch to see if it helps #################")
-        # self.batch = batch
-        # self.heads = {}
-        # for head_name, head_config in sorted(self.config.heads.items()):
-        #   if not head_config.weight:
-        #     continue  # Do not instantiate zero-weight heads.
+        
+        ################################ Start of Structure Module ##########################
+        
+        self.batch = batch
+        self.heads = {}
+        for head_name, head_config in sorted(self.config.heads.items()):
+          if not head_config.weight:
+            continue  # Do not instantiate zero-weight heads.
 
-        #   head_factory = {
-        #       'masked_msa':
-        #           modules.MaskedMsaHead,
-        #       'distogram':
-        #           modules.DistogramHead,
-        #       # 'structure_module':
-        #       #     folding_multimer.StructureModule,
-        #       'predicted_aligned_error':
-        #           modules.PredictedAlignedErrorHead,
-        #       'predicted_lddt':
-        #           modules.PredictedLDDTHead,
-        #       'experimentally_resolved':
-        #           modules.ExperimentallyResolvedHead,
-        #   }[head_name]
-        #   self.heads[head_name] = (head_config,
-        #                            head_factory(head_config, self.global_config))
+          head_factory = {
+              'masked_msa':
+                  modules.MaskedMsaHead,
+              'distogram':
+                  modules.DistogramHead,
+              'structure_module':
+                  folding_multimer.StructureModule,
+              'predicted_aligned_error':
+                  modules.PredictedAlignedErrorHead,
+              'predicted_lddt':
+                  modules.PredictedLDDTHead,
+              'experimentally_resolved':
+                  modules.ExperimentallyResolvedHead,
+          }[head_name]
+          self.heads[head_name] = (head_config,
+                                   head_factory(head_config, self.global_config))
 
-        # structure_module_output = None
-        # if 'entity_id' in batch and 'all_atom_positions' in batch:
-        #   _, fold_module = self.heads['structure_module']
-        #   structure_module_output = fold_module(representations, batch, is_training)
+        structure_module_output = None
+        if 'entity_id' in batch and 'all_atom_positions' in batch:
+          _, fold_module = self.heads['structure_module']
+          structure_module_output = fold_module(representations, batch, is_training)
 
-        # ret = {}
-        # ret['representations'] = representations
+        ret = {}
+        ret['representations'] = representations
 
-        # for name, (head_config, module) in self.heads.items():
-        #   if name == 'structure_module' and structure_module_output is not None:
-        #     ret[name] = structure_module_output
-        #     representations['structure_module'] = structure_module_output.pop('act')
-        #   # Skip confidence heads until StructureModule is executed.
-        #   elif name in {'predicted_lddt', 'predicted_aligned_error',
-        #                 'experimentally_resolved'}:
-        #     continue
-        #   else:
-        #     ret[name] = module(representations, batch, is_training)
+        for name, (head_config, module) in self.heads.items():
+          if name == 'structure_module' and structure_module_output is not None:
+            ret[name] = structure_module_output
+            #representations['structure_module'] = structure_module_output.pop('act')
+          # Skip confidence heads until StructureModule is executed.
+          elif name in {'predicted_lddt', 'predicted_aligned_error',
+                        'experimentally_resolved'}:
+            continue
+          else:
+            ret[name] = module(representations, batch, is_training)
 
         # # Add confidence heads after StructureModule is executed.
         # if self.config.heads.get('predicted_lddt.weight', 0.0):
@@ -407,14 +411,27 @@ class AlphaFoldIteration(hk.Module):
         #   name = 'experimentally_resolved'
         #   head_config, module = self.heads[name]
         #   ret[name] = module(representations, batch, is_training)
-
-        # if self.config.heads.get('predicted_aligned_error.weight', 0.0):
-        #   name = 'predicted_aligned_error'
-        #   head_config, module = self.heads[name]
-        #   ret[name] = module(representations, batch, is_training)
-        #   # Will be used for ipTM computation.
-        #   ret[name]['asym_id'] = batch['asym_id']
-
+        if self.config.heads.get('predicted_aligned_error.weight', 0.0):
+            name = 'predicted_aligned_error'
+            head_config, module = self.heads[name]
+            ret[name] = module(representations, batch, is_training)
+        #     # Will be used for ipTM computation.
+            ret[name]['asym_id'] = batch['asym_id']
+        #     logging.info("################ batch['asym_id'] ###################", batch['asym_id'])
+         
+        representations['distogram'] = ret['distogram']
+        representations['asym_id'] = batch['asym_id']
+        representations['predicted_aligned_error'] = ret['predicted_aligned_error']
+        # representations["iptm"] = confidence.predicted_tm_score(
+        #         logits=np.asarray(ret['predicted_aligned_error']["logits"]),
+        #         breaks=np.asarray(ret['predicted_aligned_error']["breaks"]),
+        #         asym_id=np.asarray(ret['predicted_aligned_error']["asym_id"]),
+        #         interface=True,
+        #     )
+        # logging.info("########### representations.keys() after structure module #################", representations.keys())
+        # Arguments: (dict_keys(['msa', 'msa_first_row', 'pair', 'single', 'structure_module']),)
+        # logging.info("############### representations['structure_module'] ####################", representations['structure_module'])
+        
         return representations
 
 
@@ -777,10 +794,10 @@ class EmbeddingsAndEvoformer(hk.Module):
             evoformer_iteration = modules.EvoformerIteration(
                 c.evoformer, gc, is_extra_msa=False, name="evoformer_iteration"
             )
-            # logging.info("evoformer_iteration finished")
-
+            
             def evoformer_fn(x):
-                act, safe_key = x
+                act, safe_key, count = x
+                jax.debug.print("##### count: {}", count)
                 safe_key, safe_subkey = safe_key.split()
                 evoformer_output = evoformer_iteration(
                     activations=act,
@@ -788,32 +805,23 @@ class EmbeddingsAndEvoformer(hk.Module):
                     is_training=is_training,
                     safe_key=safe_subkey,
                 )
-                return (evoformer_output, safe_key)
+                return (evoformer_output, safe_key, count + 1)
 
             if gc.use_remat:
                 evoformer_fn = hk.remat(evoformer_fn)
 
             safe_key, safe_subkey = safe_key.split()
 
-            # logging.info("str(c.evoformer_num_block): %s", str(c.evoformer_num_block)) # this is an int
             evoformer_stack = layer_stack.layer_stack(c.evoformer_num_block)(
                 evoformer_fn
-            )  # kanske är något med den här funktionen
-
-            # logging.info("evoformer layerstack finished")
-
-            # logging.info("safe_subkey: %s", str(safe_subkey))
+            )
+            
             def run_evoformer(evoformer_input):
-                evoformer_output, _ = evoformer_stack((evoformer_input, safe_subkey))
+                evoformer_output, _, count = evoformer_stack((evoformer_input, safe_subkey, 0))
+                jax.debug.print("##### run_evoformer: {}", count)
                 return evoformer_output
 
-            # breakthrough getting closer!! Maybe can have something to do with the empty templates?
-            # logging.info("evoformer input msa len: %d", len(evoformer_input['msa']))
-            # logging.info("evoformer masks msa len: %d", len(evoformer_masks['msa']))
-            # logging.info("evoformer input len: %d", len(evoformer_input))
-            # logging.info("evoformer input str: %s", str(evoformer_input))
             evoformer_output = run_evoformer(evoformer_input)
-            # logging.info("run_evoformer finished")
 
             msa_activations = evoformer_output["msa"]
             pair_activations = evoformer_output["pair"]

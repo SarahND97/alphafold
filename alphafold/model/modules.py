@@ -1050,7 +1050,7 @@ class PredictedLDDTHead(hk.Module):
         * 'logits': logits of shape [N_res, N_bins] with
             (unnormalized) log probabilies of binned predicted lDDT.
     """
-    # act = representations['structure_module']
+    act = representations['structure_module']
 
     act = common_modules.LayerNorm(
         axis=[-1],
@@ -1771,7 +1771,6 @@ class EvoformerIteration(hk.Module):
         pair_act,
         pair_mask,
         safe_key=next(sub_keys))
-
     return {'msa': msa_act, 'pair': pair_act}
 
 
@@ -1984,6 +1983,7 @@ class EmbeddingsAndEvoformer(hk.Module):
           masks=evoformer_masks,
           is_training=is_training,
           safe_key=safe_subkey)
+      count += 1
       return (evoformer_output, safe_key)
 
     if gc.use_remat:

@@ -348,14 +348,9 @@ class AlphaFoldIteration(hk.Module):
         (representations, _), _ = hk.scan(
             ensemble_body, (representations, safe_key), None, length=num_ensemble
         )
-        # logging.info("############ esemble body finished ###################")
         # after evoformer is done we want to return the representations
 
         self.representations = representations
-        # logging.info(
-        #    "############ self.representations = representations ###################"
-        # )
-        # logging.info("########### Trying to uncomment self.batch = batch to see if it helps #################")
         
         ################################ Start of Structure Module ##########################
         

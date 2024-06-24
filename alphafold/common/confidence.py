@@ -146,6 +146,38 @@ def compute_predicted_aligned_error(
       'max_predicted_aligned_error': max_predicted_aligned_error,
   }
 
+# This feels redundant, should be able to change
+def compute_extra_predicted_aligned_error(
+    logits: np.ndarray, breaks: np.ndarray, layer: int
+) -> Dict[str, np.ndarray]:
+    # NOTE Same as compute_predicted_aligned_error except the naming
+    """Computes aligned confidence metrics from logits.
+
+    Args:
+      logits: [num_res, num_res, num_bins] the logits output from
+        PredictedAlignedErrorHead.
+      breaks: [num_bins - 1] the error bin edges.
+
+    Returns:
+      aligned_confidence_probs: [num_res, num_res, num_bins] the predicted
+        aligned error probabilities over bins for each residue pair.
+      predicted_aligned_error: [num_res, num_res] the expected aligned distance
+        error for each pair of residues.
+      max_predicted_aligned_error: The maximum predicted error possible.
+    """
+    aligned_confidence_probs = scipy.special.softmax(logits, axis=-1)
+    predicted_aligned_error, max_predicted_aligned_error = (
+        _calculate_expected_aligned_error(
+            alignment_confidence_breaks=breaks,
+            aligned_distance_error_probs=aligned_confidence_probs,
+        )
+    )
+    return {
+        f"aligned_confidence_probs_layer{layer}": aligned_confidence_probs,
+        f"predicted_aligned_error_layer{layer}": predicted_aligned_error,
+        f"max_predicted_aligned_error_layer{layer}": max_predicted_aligned_error,
+    }
+
 
 def pae_json(pae: np.ndarray, max_pae: float) -> str:
   """Returns the PAE in the same format as is used in the AFDB.

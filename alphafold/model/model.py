@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """Code for constructing the model."""
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union, List
 
 from absl import logging
 from alphafold.common import confidence

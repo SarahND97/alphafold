@@ -410,9 +410,19 @@ class AlphaFoldIteration(hk.Module):
             name = 'predicted_aligned_error'
             head_config, module = self.heads[name]
             ret[name] = module(representations, batch, is_training)
-        #     # Will be used for ipTM computation.
+            # Will be used for ipTM computation.
             ret[name]['asym_id'] = batch['asym_id']
-        #     logging.info("################ batch['asym_id'] ###################", batch['asym_id'])
+            
+            for i in self.config.embeddings_and_evoformer.extra_evoformer_output_layers:
+
+                name = f"predicted_aligned_error_layer{i}"
+                extra_representations = {}
+                extra_representations["pair"] = representations["intermediate_pair"][
+                    ..., i
+                ]
+                ret[name] = module(extra_representations, batch, is_training)
+                # Will be used for ipTM computation.
+                ret[name]["asym_id"] = batch["asym_id"]
          
         representations['distogram'] = ret['distogram']
         representations['asym_id'] = batch['asym_id']

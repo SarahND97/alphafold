@@ -235,6 +235,12 @@ flags.DEFINE_boolean(
     "recommended to enable if possible. GPUs must be available"
     " if this setting is enabled.",
 )
+flags.DEFINE_string(
+    "layers_to_calculate_iptm",
+    "all",
+    "Specify at which layers to calculate ipTM, choose between all, none or every X layer as X",
+)
+
 
 FLAGS = flags.FLAGS
 
@@ -444,8 +450,10 @@ def predict_structure(
         #   max_pae = prediction_result['max_predicted_aligned_error']
         #   _save_pae_json_file(pae, float(max_pae), output_dir, model_name)
 
-        # Remove jax dependency from results.
+        # Remove jax dependency from results
         np_prediction_result = _jnp_to_np(dict(prediction_result))
+        # logging.info("iptm values", np_prediction_result["iptm_values"])
+        # logging.info("ptm values", np_prediction_result["ptm_values"])
 
         # Save the model outputs.
         # add the name of the sequence here
@@ -682,11 +690,26 @@ def main(argv):
     else:
         num_predictions_per_model = 1
         data_pipeline = monomer_data_pipeline
+
+    
+    # Update config so that it computes the iptm at the specified layers
+    iptm_layers = FLAGS.layers_to_calculate_iptm
+    upper_range = config.CONFIG_MULTIMER.model.embeddings_and_evoformer.evoformer_num_block + 1
+    if iptm_layers == "all":
+        iptm_layers = list(range(upper_range))
+    elif iptm_layers == "none" or iptm_layers is None:
+        iptm_layers = []
+    else:
+        iptm_layers = list(range(0,upper_range,int(iptm_layers)))
+
+    config.CONFIG_MULTIMER.model.embeddings_and_evoformer.extra_evoformer_output_layers = (
+        iptm_layers
+    )
     
     model_runners = {}
     model_names = config.MODEL_PRESETS[FLAGS.model_preset]
+    
     # add here the ability to pick out one model
-
     if FLAGS.model_to_run=="all":
         for model_name in model_names:
             model_runners = _model_config(model_name, num_predictions_per_model, run_multimer_system, num_ensemble)

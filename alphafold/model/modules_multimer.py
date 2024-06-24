@@ -866,6 +866,7 @@ class EmbeddingsAndEvoformer(hk.Module):
                 # Crop away template rows such that they are not used in MaskedMsaHead.
                 "msa": msa_activations[:num_msa_sequences, :, :],
                 "msa_first_row": msa_activations[0],
+                "intermediate_pair": intermediate_pair_activations,  # add intermediate_pair activations to output
             }
         )
 

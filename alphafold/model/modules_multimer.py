@@ -799,7 +799,7 @@ class EmbeddingsAndEvoformer(hk.Module):
             def evoformer_fn(x):
                 act, safe_key, counter, inter_pair_act = x
                 # jax.debug.print("##### count: {}", count)
-                inter_pair_act = inter_pair_act.at[..., counter]
+                inter_pair_act = inter_pair_act.at[..., counter].set(act["pair"])
                 #jax.lax.cond(counter == 10, true_fun, false_fun, count)
                 
                 safe_key, safe_subkey = safe_key.split()

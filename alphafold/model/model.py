@@ -69,6 +69,48 @@ def get_confidence_metrics(
 
     return confidence_metrics
 
+# Calculate ipTM/pTM from the intermediate pair representations
+def get_extra_confidence_metrics(
+    prediction_result: Mapping[str, Any],
+    multimer_mode: bool,
+    extra_output_layers: List[int],
+) -> Mapping[str, Any]:
+    """Post processes prediction_result to get confidence metrics."""
+    extra_confidence_metrics = {}
+
+    for i in extra_output_layers:
+        pae_layer_name = f"predicted_aligned_error_layer{i}"
+        if pae_layer_name in prediction_result:
+            extra_confidence_metrics.update(
+                confidence.compute_extra_predicted_aligned_error(
+                    logits=prediction_result[pae_layer_name]["logits"],
+                    breaks=prediction_result[pae_layer_name]["breaks"],
+                    layer=i,
+                )
+            )
+            extra_confidence_metrics[f"ptm_layer{i}"] = confidence.predicted_tm_score(
+                logits=prediction_result[pae_layer_name]["logits"],
+                breaks=prediction_result[pae_layer_name]["breaks"],
+                asym_id=None,
+            )
+            if multimer_mode:
+                # Compute the ipTM only for the multimer model.
+                extra_confidence_metrics[f"iptm_layer{i}"] = (
+                    confidence.predicted_tm_score(
+                        logits=prediction_result[pae_layer_name]["logits"],
+                        breaks=prediction_result[pae_layer_name]["breaks"],
+                        asym_id=prediction_result[pae_layer_name]["asym_id"],
+                        interface=True,
+                    )
+                )
+                extra_confidence_metrics[f"ranking_confidence_layer{i}"] = (
+                    0.8 * extra_confidence_metrics[f"iptm_layer{i}"]
+                    + 0.2 * extra_confidence_metrics[f"ptm_layer{i}"]
+                )
+
+    return extra_confidence_metrics
+
+
 
 class RunModel:
     """Container for JAX model."""
@@ -221,4 +263,12 @@ class RunModel:
         #result["iptm"] = confidence_metrics["iptm"]
         result.update(
             get_confidence_metrics(result, multimer_mode=self.multimer_mode))
+
+        result.update(
+            get_extra_confidence_metrics(
+                result,
+                multimer_mode=self.multimer_mode,
+                extra_output_layers=self.config.model.embeddings_and_evoformer.extra_evoformer_output_layers,
+            )
+        )
         return result

@@ -412,21 +412,21 @@ class AlphaFoldIteration(hk.Module):
             ret[name] = module(representations, batch, is_training)
             # Will be used for ipTM computation.
             ret[name]['asym_id'] = batch['asym_id']
-            
+  
+            pae_layer_values = []
             for i in self.config.embeddings_and_evoformer.extra_evoformer_output_layers:
 
-                name = f"predicted_aligned_error_layer{i}"
+                name = f"predicted_aligned_error_layer_{i}"
                 extra_representations = {}
                 extra_representations["pair"] = representations["intermediate_pair"][
                     ..., i
                 ]
-                ret[name] = module(extra_representations, batch, is_training)
-                # Will be used for ipTM computation.
-                ret[name]["asym_id"] = batch["asym_id"]
-         
+                pae_layer_values.append(module(extra_representations, batch, is_training))
+                
         representations['distogram'] = ret['distogram']
         representations['asym_id'] = batch['asym_id']
         representations['predicted_aligned_error'] = ret['predicted_aligned_error']
+        representations['pae_layer_values'] = pae_layer_values
         # representations["iptm"] = confidence.predicted_tm_score(
         #         logits=np.asarray(ret['predicted_aligned_error']["logits"]),
         #         breaks=np.asarray(ret['predicted_aligned_error']["breaks"]),

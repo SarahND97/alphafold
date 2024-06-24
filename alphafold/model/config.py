@@ -465,6 +465,7 @@ CONFIG_MULTIMER = ml_collections.ConfigDict({
     'model': {
         'embeddings_and_evoformer': {
             'evoformer_num_block': 48,
+            "extra_evoformer_output_layers": [],
             'evoformer': {
                 'msa_column_attention': {
                     'dropout_rate': 0.0,

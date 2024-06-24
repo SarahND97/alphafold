@@ -797,11 +797,11 @@ class EmbeddingsAndEvoformer(hk.Module):
                 return c
             
             def evoformer_fn(x):
-                act, safe_key, count = x
+                act, safe_key, counter, inter_pair_act = x
                 # jax.debug.print("##### count: {}", count)
-                jax.lax.cond(count == 10, true_fun, false_fun, count)
-                #if count==10:
-                    #jax.debug.print("##### count: {}", count)
+                inter_pair_act = inter_pair_act.at[..., counter]
+                #jax.lax.cond(counter == 10, true_fun, false_fun, count)
+                
                 safe_key, safe_subkey = safe_key.split()
                 evoformer_output = evoformer_iteration(
                     activations=act,
@@ -809,7 +809,7 @@ class EmbeddingsAndEvoformer(hk.Module):
                     is_training=is_training,
                     safe_key=safe_subkey,
                 )
-                return (evoformer_output, safe_key, count + 1)
+                return (evoformer_output, safe_key, counter + 1, inter_pair_act)
 
             if gc.use_remat:
                 evoformer_fn = hk.remat(evoformer_fn)
@@ -819,13 +819,38 @@ class EmbeddingsAndEvoformer(hk.Module):
             evoformer_stack = layer_stack.layer_stack(c.evoformer_num_block)(
                 evoformer_fn
             )
-            
-            def run_evoformer(evoformer_input):
-                evoformer_output, _, count = evoformer_stack((evoformer_input, safe_subkey, 0))
-                jax.debug.print("##### run_evoformer: {}", count)
-                return evoformer_output
 
-            evoformer_output = run_evoformer(evoformer_input)
+            # Initialize intermediate_pair_activations array
+            # Entry [...,i] containts the pair activations of layer i for i > 0 and [...,0] is the input activations
+            intermediate_pair_activations_in = jax.numpy.zeros_like(
+                evoformer_input["pair"]
+            )
+            intermediate_pair_activations_in = jnp.expand_dims(
+                intermediate_pair_activations_in, -1
+            )
+            intermediate_pair_activations_in = jnp.tile(
+                intermediate_pair_activations_in, c.evoformer_num_block + 1
+            )
+
+            def run_evoformer(evoformer_input):
+                evoformer_output, _, _, intermediate_pair_activations = evoformer_stack(
+                    (
+                        evoformer_input,
+                        safe_subkey,
+                        0,
+                        intermediate_pair_activations_in,
+                    )
+                )
+                return evoformer_output, intermediate_pair_activations
+
+            evoformer_output, intermediate_pair_activations = run_evoformer(
+                evoformer_input
+            )
+
+            # add the final layer pair representations
+            intermediate_pair_activations = intermediate_pair_activations.at[
+                ..., c.evoformer_num_block
+            ].set(evoformer_output["pair"])
 
             msa_activations = evoformer_output["msa"]
             pair_activations = evoformer_output["pair"]

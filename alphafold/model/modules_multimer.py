@@ -356,56 +356,77 @@ class AlphaFoldIteration(hk.Module):
         
         self.batch = batch
         self.heads = {}
-        for head_name, head_config in sorted(self.config.heads.items()):
-          if not head_config.weight:
-            continue  # Do not instantiate zero-weight heads.
+        
+        #if self.config.run_only_pae_head:  # Only instantiate PredictedAlignedErrorHead
+        head_name = "predicted_aligned_error"
+        head_config = self.config.heads[head_name]
 
-          head_factory = {
-              'masked_msa':
-                  modules.MaskedMsaHead,
-              'distogram':
-                  modules.DistogramHead,
-              'structure_module':
-                  folding_multimer.StructureModule,
-              'predicted_aligned_error':
-                  modules.PredictedAlignedErrorHead,
-              'predicted_lddt':
-                  modules.PredictedLDDTHead,
-              'experimentally_resolved':
-                  modules.ExperimentallyResolvedHead,
-          }[head_name]
-          self.heads[head_name] = (head_config,
-                                   head_factory(head_config, self.global_config))
-
-        structure_module_output = None
-        if 'entity_id' in batch and 'all_atom_positions' in batch:
-          _, fold_module = self.heads['structure_module']
-          structure_module_output = fold_module(representations, batch, is_training)
+        head_factory = {
+            "predicted_aligned_error": modules.PredictedAlignedErrorHead,
+        }[head_name]
+        self.heads[head_name] = (
+            head_config,
+            head_factory(head_config, self.global_config),
+        )
 
         ret = {}
-        ret['representations'] = representations
+        ret["representations"] = representations
 
-        for name, (head_config, module) in self.heads.items():
-          if name == 'structure_module' and structure_module_output is not None:
-            ret[name] = structure_module_output
-            #representations['structure_module'] = structure_module_output.pop('act')
-          # Skip confidence heads until StructureModule is executed.
-          elif name in {'predicted_lddt', 'predicted_aligned_error',
-                        'experimentally_resolved'}:
-            continue
-          else:
-            ret[name] = module(representations, batch, is_training)
+        # else:
+        #     for head_name, head_config in sorted(self.config.heads.items()):
+        #         if not head_config.weight:
+        #             continue  # Do not instantiate zero-weight heads.
 
-        # # Add confidence heads after StructureModule is executed.
-        # if self.config.heads.get('predicted_lddt.weight', 0.0):
-        #   name = 'predicted_lddt'
-        #   head_config, module = self.heads[name]
-        #   ret[name] = module(representations, batch, is_training)
+        #         head_factory = {
+        #             "masked_msa": modules.MaskedMsaHead,
+        #             # "distogram": modules.DistogramHead,
+        #             # "structure_module": folding_multimer.StructureModule,
+        #             "predicted_aligned_error": modules.PredictedAlignedErrorHead,
+        #             # "predicted_lddt": modules.PredictedLDDTHead,
+        #             # "experimentally_resolved": modules.ExperimentallyResolvedHead,
+        #         }[head_name]
+        #         self.heads[head_name] = (
+        #             head_config,
+        #             head_factory(head_config, self.global_config),
+        #         )
 
-        # if self.config.heads.experimentally_resolved.weight:
-        #   name = 'experimentally_resolved'
-        #   head_config, module = self.heads[name]
-        #   ret[name] = module(representations, batch, is_training)
+        #     structure_module_output = None
+        #     if "entity_id" in batch and "all_atom_positions" in batch:
+        #         _, fold_module = self.heads["structure_module"]
+        #         structure_module_output = fold_module(
+        #             representations, batch, is_training
+        #         )
+
+        #     ret = {}
+        #     ret["representations"] = representations
+
+        #     for name, (head_config, module) in self.heads.items():
+        #         if name == "structure_module" and structure_module_output is not None:
+        #             ret[name] = structure_module_output
+        #             representations["structure_module"] = structure_module_output.pop(
+        #                 "act"
+        #             )
+        #         # Skip confidence heads until StructureModule is executed.
+        #         elif name in {
+        #             "predicted_lddt",
+        #             "predicted_aligned_error",
+        #             "experimentally_resolved",
+        #         }:
+        #             continue
+        #         else:
+        #             ret[name] = module(representations, batch, is_training)
+
+        #     # Add confidence heads after StructureModule is executed.
+        #     if self.config.heads.get("predicted_lddt.weight", 0.0):
+        #         name = "predicted_lddt"
+        #         head_config, module = self.heads[name]
+        #         ret[name] = module(representations, batch, is_training)
+
+        #     if self.config.heads.experimentally_resolved.weight:
+        #         name = "experimentally_resolved"
+        #         head_config, module = self.heads[name]
+        #         ret[name] = module(representations, batch, is_training)
+        
         if self.config.heads.get('predicted_aligned_error.weight', 0.0):
             name = 'predicted_aligned_error'
             head_config, module = self.heads[name]
@@ -414,17 +435,24 @@ class AlphaFoldIteration(hk.Module):
             ret[name]['asym_id'] = batch['asym_id']
   
             pae_layer_values = []
-            for i in self.config.embeddings_and_evoformer.extra_evoformer_output_layers:
-
-                name = f"predicted_aligned_error_layer_{i}"
+            #print("#########  self.config.embeddings   ########", self.config.embeddings_and_evoformer.extra_evoformer_output_layers)
+            print("##### representations[intermediate_pair] ###########", representations["intermediate_pair"].shape)
+            #print("##### representations[intermediate_pair] ###########", representations["intermediate_pair"].shape)
+            for i in range(len(self.config.embeddings_and_evoformer.extra_evoformer_output_layers)):
+                name = f"predicted_aligned_error_layer_{self.config.embeddings_and_evoformer.extra_evoformer_output_layers[i]}"
                 extra_representations = {}
                 extra_representations["pair"] = representations["intermediate_pair"][
                     ..., i
                 ]
                 pae_layer_values.append(module(extra_representations, batch, is_training))
+                representations[f"pair_{self.config.embeddings_and_evoformer.extra_evoformer_output_layers[i]}"] = extra_representations["pair"]
                 
-        representations['distogram'] = ret['distogram']
+        if 'distogram' in ret.keys():
+            representations['distogram'] = ret['distogram']
+        
         representations['asym_id'] = batch['asym_id']
+        representations['logits'] = ret['predicted_aligned_error']["logits"]
+        #representations['breaks'] = ret['predicted_aligned_error']["breaks"]
         representations['predicted_aligned_error'] = ret['predicted_aligned_error']
         representations['pae_layer_values'] = pae_layer_values
         # representations["iptm"] = confidence.predicted_tm_score(
@@ -799,18 +827,37 @@ class EmbeddingsAndEvoformer(hk.Module):
             evoformer_iteration = modules.EvoformerIteration(
                 c.evoformer, gc, is_extra_msa=False, name="evoformer_iteration"
             )
-            def true_fun(c):
-                jax.debug.print("##### count: {}", c)
-                return c
+            # embeddings_and_evoformer.extra_evoformer_output_layers
+            print("############ extra_evoformer_output_layers ################", c.extra_evoformer_output_layers)
             
-            def false_fun(c):
-                return c
+            target_values = jnp.array(c.extra_evoformer_output_layers) # Example target values; adjust as needed
+
+            def save_condition(c, act, inter_pair_act):
+                # Save the pair activations at the specified index c
+                return inter_pair_act.at[..., c].set(act["pair"])
+
+            def skip_condition(c, act, inter_pair_act):
+                return inter_pair_act
             
             def evoformer_fn(x):
                 act, safe_key, counter, inter_pair_act = x
                 # jax.debug.print("##### count: {}", count)
-                inter_pair_act = inter_pair_act.at[..., counter].set(act["pair"])
-                #jax.lax.cond(counter == 10, true_fun, false_fun, count)
+                # save logits here, instead, try to predict future logits with previous logits... se if possible
+                
+                # inter_pair_act = inter_pair_act.at[..., counter].set(act["pair"])
+                should_save = jnp.any(counter == target_values)  # Uses JAX operations for comparison
+                jax.debug.print("##### should_save: {}", should_save)
+                inter_pair_act = jax.lax.cond(
+                    should_save,
+                    save_condition,
+                    skip_condition,
+                    counter,
+                    act,
+                    inter_pair_act
+                )
+                # jax.debug.print("##### inter_pair_act: {}", inter_pair_act.shape)
+                #for value in self.config.extra_evoformer_output_layers:
+                #    inter_pair_act = jax.lax.cond(counter == value, true_fun, false_fun, counter, act, inter_pair_act)
                 
                 safe_key, safe_subkey = safe_key.split()
                 evoformer_output = evoformer_iteration(
@@ -838,8 +885,9 @@ class EmbeddingsAndEvoformer(hk.Module):
             intermediate_pair_activations_in = jnp.expand_dims(
                 intermediate_pair_activations_in, -1
             )
+         
             intermediate_pair_activations_in = jnp.tile(
-                intermediate_pair_activations_in, c.evoformer_num_block + 1
+                intermediate_pair_activations_in, len(c.extra_evoformer_output_layers)
             )
 
             def run_evoformer(evoformer_input):
@@ -856,11 +904,14 @@ class EmbeddingsAndEvoformer(hk.Module):
             evoformer_output, intermediate_pair_activations = run_evoformer(
                 evoformer_input
             )
-
+           
             # add the final layer pair representations
-            intermediate_pair_activations = intermediate_pair_activations.at[
-                ..., c.evoformer_num_block
-            ].set(evoformer_output["pair"])
+            if -1 in c.extra_evoformer_output_layers:
+                intermediate_pair_activations = intermediate_pair_activations.at[
+                    ..., -1
+                ].set(evoformer_output["pair"])
+
+            print("############ intermediate_pair_activations after run_evoformer 2 ################", intermediate_pair_activations.shape)
 
             msa_activations = evoformer_output["msa"]
             pair_activations = evoformer_output["pair"]

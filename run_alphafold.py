@@ -29,12 +29,12 @@ from absl import flags
 from absl import logging
 from alphafold.common import confidence
 from alphafold.common import protein
-from alphafold.common import residue_constants
+# from alphafold.common import residue_constants
 from alphafold.data import pipeline
 from alphafold.data import pipeline_multimer
-from alphafold.data import templates
-from alphafold.data.tools import hhsearch
-from alphafold.data.tools import hmmsearch
+# from alphafold.data import templates
+# from alphafold.data.tools import hhsearch
+# from alphafold.data.tools import hmmsearch
 from alphafold.model import config
 from alphafold.model import data
 from alphafold.model import model
@@ -241,6 +241,12 @@ flags.DEFINE_string(
     "Specify at which layers to calculate ipTM, choose between all, none or every X layer as X",
 )
 
+flags.DEFINE_boolean(
+    "run_only_pae_head",
+    False,
+    "If True, run only PredictedAlignedErrorHead (in particular we skip the structure module)",
+)
+
 
 FLAGS = flags.FLAGS
 
@@ -357,6 +363,7 @@ def predict_structure(
     random_seed: int,
     models_to_relax: ModelsToRelax,
     model_type: str,
+    run_only_pae_head: bool,
 ):
     """Predicts structure using AlphaFold for the given sequence."""
     logging.info("Predicting %s", fasta_name)
@@ -454,14 +461,39 @@ def predict_structure(
         np_prediction_result = _jnp_to_np(dict(prediction_result))
         # logging.info("iptm values", np_prediction_result["iptm_values"])
         # logging.info("ptm values", np_prediction_result["ptm_values"])
-
+        #  extra_confidence_metrics["iptm_values"] = np.array(iptm_values)
+        # extra_confidence_metrics["ptm_values"] = np.array(ptm_values)
+        # extra_confidence_metrics["logits_all_layers"]
+        print("np_prediction_results", np_prediction_result.keys())
+        save_results = {}
+        for k in np_prediction_result.keys():
+            if k.startswith("iptm") or k.startswith("pair") or k.startswith("ptm") or k.startswith("logits"):
+                save_results[k] = np_prediction_result[k]
+        # Here only want to "save", pair_2, logits_-1, final iptm/ptm 
+        #differences = jnp.where(intermediate_pair_activations[:, :, :, 0] == intermediate_pair_activations_test[:, :, :, 2])
+        are_equal_2 = jnp.all(save_results["pair_2"] == np_prediction_result["intermediate_pair_test"][:, :, :, 2])
+        are_equal_3 = jnp.all(save_results["pair_3"] == np_prediction_result["intermediate_pair_test"][:, :, :, 3])
+        are_equal_12 = jnp.all(save_results["pair_12"] == np_prediction_result["intermediate_pair_test"][:, :, :, 12])
+        are_equal_14 = jnp.all(save_results["pair_14"] == np_prediction_result["intermediate_pair_test"][:, :, :, 14])
+        are_equal_32 = jnp.all(save_results["pair_32"] == np_prediction_result["intermediate_pair_test"][:, :, :, 32])
+        are_equal_last = jnp.all(save_results["pair_-1"] == np_prediction_result["intermediate_pair_test"][:, :, :, -1])
+        #print(save_results["pair_2"])
+        print("######### check if test and real are equal 2 ##########", are_equal_2)
+        print("######### check if test and real are equal 3 ##########", are_equal_3)
+        print("######### check if test and real are equal 12 ##########", are_equal_12)
+        print("######### check if test and real are equal 14 ##########", are_equal_14)
+        print("######### check if test and real are equal 32 ##########", are_equal_32)
+        print("######### check if test and real are equal last ##########", are_equal_last)
+        print("save_results.keys(): ", save_results.keys())
         # Save the model outputs.
         # add the name of the sequence here
-        result_output_path = os.path.join(output_dir, fasta_name+f"_result_{model_name}.pkl")
-        with open(result_output_path, "wb") as f:
-            pickle.dump(np_prediction_result, f, protocol=4)
+        #result_output_path = os.path.join(output_dir, fasta_name+f"_result_{model_name}.pkl")
+        #logging.info("Saving output to: ", str(result_output_path))
+        #with open(result_output_path, "wb") as f:
+            # pickle.dump(np_prediction_result, f, protocol=4)
+        #    pickle.dump(save_results, f, protocol=4)
 
-        # Add the predicted LDDT in the b-factor column.
+        # Add the predicted LDDT in the b-factor column. /proj/berzelius-2021-29/users/x_sarna/programs/evoformer_alphafold/EvoPred
         # Note that higher predicted LDDT value means higher model confidence.
         # plddt_b_factors = np.repeat(
         #     plddt[:, None], residue_constants.atom_type_num, axis=-1)
@@ -697,15 +729,22 @@ def main(argv):
     upper_range = config.CONFIG_MULTIMER.model.embeddings_and_evoformer.evoformer_num_block + 1
     if iptm_layers == "all":
         iptm_layers = list(range(upper_range))
-    elif iptm_layers == "none" or iptm_layers is None:
+    elif iptm_layers == "none" or iptm_layers == "None" or iptm_layers is None:
         iptm_layers = []
+    elif "," in iptm_layers:
+        iptm_layers_temp = iptm_layers.split(",")
+        iptm_layers = [int(layer) for layer in iptm_layers_temp]
     else:
         iptm_layers = list(range(0,upper_range,int(iptm_layers)))
+    # print("######### iptm_layers ###################", iptm_layers)
 
     config.CONFIG_MULTIMER.model.embeddings_and_evoformer.extra_evoformer_output_layers = (
         iptm_layers
     )
     
+    # Uodate config to include run_only_pae_head
+    config.CONFIG_MULTIMER.model.run_only_pae_head = FLAGS.run_only_pae_head
+
     model_runners = {}
     model_names = config.MODEL_PRESETS[FLAGS.model_preset]
     
@@ -745,6 +784,7 @@ def main(argv):
             model_runners=model_runners,
             amber_relaxer="",
             benchmark=FLAGS.benchmark,
+            run_only_pae_head=FLAGS.run_only_pae_head,
             random_seed=random_seed,
             models_to_relax=FLAGS.models_to_relax,
             model_type=model_type,

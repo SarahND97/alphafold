@@ -830,31 +830,34 @@ class EmbeddingsAndEvoformer(hk.Module):
             # embeddings_and_evoformer.extra_evoformer_output_layers
             print("############ extra_evoformer_output_layers ################", c.extra_evoformer_output_layers)
             
-            target_values = jnp.array(c.extra_evoformer_output_layers) # Example target values; adjust as needed
+            # Convert the target values to a jnp array for comparison
+            target_values = jnp.array(c.extra_evoformer_output_layers) 
 
-            def save_condition(c, act, inter_pair_act):
+            def save_condition(pair_c, act, inter_pair_act):
                 # Save the pair activations at the specified index c
-                return inter_pair_act.at[..., c].set(act["pair"])
+                return inter_pair_act.at[..., pair_c].set(act["pair"]), pair_c+1
 
             def skip_condition(c, act, inter_pair_act):
-                return inter_pair_act
+                return inter_pair_act, c
             
             def evoformer_fn(x):
-                act, safe_key, counter, inter_pair_act = x
+                act, safe_key, counter, pair_counter, inter_pair_act, inter_pair_act_test = x
                 # jax.debug.print("##### count: {}", count)
                 # save logits here, instead, try to predict future logits with previous logits... se if possible
                 
-                # inter_pair_act = inter_pair_act.at[..., counter].set(act["pair"])
+                inter_pair_act_test = inter_pair_act_test.at[..., counter].set(act["pair"])
                 should_save = jnp.any(counter == target_values)  # Uses JAX operations for comparison
                 jax.debug.print("##### should_save: {}", should_save)
-                inter_pair_act = jax.lax.cond(
+                inter_pair_act, pair_counter = jax.lax.cond(
                     should_save,
                     save_condition,
                     skip_condition,
-                    counter,
+                    pair_counter,
                     act,
                     inter_pair_act
                 )
+                # if should_save:
+                #     pair_counter += 1
                 # jax.debug.print("##### inter_pair_act: {}", inter_pair_act.shape)
                 #for value in self.config.extra_evoformer_output_layers:
                 #    inter_pair_act = jax.lax.cond(counter == value, true_fun, false_fun, counter, act, inter_pair_act)
@@ -866,7 +869,7 @@ class EmbeddingsAndEvoformer(hk.Module):
                     is_training=is_training,
                     safe_key=safe_subkey,
                 )
-                return (evoformer_output, safe_key, counter + 1, inter_pair_act)
+                return (evoformer_output, safe_key, counter + 1, pair_counter, inter_pair_act, inter_pair_act_test)
 
             if gc.use_remat:
                 evoformer_fn = hk.remat(evoformer_fn)
@@ -890,18 +893,32 @@ class EmbeddingsAndEvoformer(hk.Module):
                 intermediate_pair_activations_in, len(c.extra_evoformer_output_layers)
             )
 
+            # For testing
+            intermediate_pair_activations_in_test = jax.numpy.zeros_like(
+                evoformer_input["pair"]
+            )
+            intermediate_pair_activations_in_test = jnp.expand_dims(
+                intermediate_pair_activations_in, -1
+            )
+         
+            intermediate_pair_activations_in_test = jnp.tile(
+                intermediate_pair_activations_in, c.evoformer_num_block)
+
+
             def run_evoformer(evoformer_input):
-                evoformer_output, _, _, intermediate_pair_activations = evoformer_stack(
+                evoformer_output, _, _, _, intermediate_pair_activations, intermediate_pair_activations_test = evoformer_stack(
                     (
                         evoformer_input,
                         safe_subkey,
                         0,
+                        0,
                         intermediate_pair_activations_in,
+                        intermediate_pair_activations_in_test,
                     )
                 )
-                return evoformer_output, intermediate_pair_activations
+                return evoformer_output, intermediate_pair_activations, intermediate_pair_activations_test
 
-            evoformer_output, intermediate_pair_activations = run_evoformer(
+            evoformer_output, intermediate_pair_activations, intermediate_pair_activations_test = run_evoformer(
                 evoformer_input
             )
            
@@ -911,7 +928,12 @@ class EmbeddingsAndEvoformer(hk.Module):
                     ..., -1
                 ].set(evoformer_output["pair"])
 
-            print("############ intermediate_pair_activations after run_evoformer 2 ################", intermediate_pair_activations.shape)
+            
+            intermediate_pair_activations_test = intermediate_pair_activations_test.at[
+                ..., -1
+            ].set(evoformer_output["pair"])
+
+            # print("############ intermediate_pair_activations after run_evoformer 2 ################", intermediate_pair_activations.shape)
 
             msa_activations = evoformer_output["msa"]
             pair_activations = evoformer_output["pair"]
@@ -928,6 +950,7 @@ class EmbeddingsAndEvoformer(hk.Module):
                 "msa": msa_activations[:num_msa_sequences, :, :],
                 "msa_first_row": msa_activations[0],
                 "intermediate_pair": intermediate_pair_activations,  # add intermediate_pair activations to output
+                "intermediate_pair_test": intermediate_pair_activations_test,
             }
         )
 

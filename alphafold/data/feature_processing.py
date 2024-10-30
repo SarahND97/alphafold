@@ -72,6 +72,12 @@ def pair_and_merge(
       msa_crop_size=MSA_CROP_SIZE,
       pair_msa_sequences=pair_msa_sequences,
       max_templates=MAX_TEMPLATES)
+  print("np_chains_list[0][msa].shape: ", (np_chains_list[0]["msa"].shape))
+  print("np_chains_list[0][msa].shape: ", (np_chains_list[1]["msa"].shape))
+  print((np_chains_list[0]["num_alignments_all_seq"].shape))
+  print((np_chains_list[1]["msa_species_identifiers_all_seq"].shape))
+  print((np_chains_list[1]["msa_all_seq"].shape))
+  #print(np_chains_list[1])
   np_example = msa_pairing.merge_chain_features(
       np_chains_list=np_chains_list, pair_msa_sequences=pair_msa_sequences,
       max_templates=MAX_TEMPLATES)

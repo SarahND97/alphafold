@@ -24,6 +24,7 @@ from alphafold.data import pipeline
 import numpy as np
 import pandas as pd
 import scipy.linalg
+import sys
 
 MSA_GAP_IDX = residue_constants.restypes_with_x_and_gap.index('-')
 SEQUENCE_GAP_CUTOFF = 0.5
@@ -297,10 +298,12 @@ def _correct_post_merged_feats(
     np_example['cluster_bias_mask'][0] = 1
 
     # Initialize Bert mask with masked out off diagonals.
-    msa_masks = [np.ones(x['msa'].shape, dtype=np.float32) for
-                 x in np_chains_list]
-    msa_masks_all_seq = [np.ones(x['msa_all_seq'].shape, dtype=np.float32) for
-                         x in np_chains_list]
+    # msa_masks = [np.ones(x['msa'].shape, dtype=np.float32) for
+    #              x in np_chains_list]
+    # msa_masks_all_seq = [np.ones(x['msa_all_seq'].shape, dtype=np.float32) for
+    #                      x in np_chains_list]
+    msa_masks = [np.ones(np_chains_list[0]['msa'].shape, dtype=np.float32)]
+    msa_masks_all_seq = [np.ones(np_chains_list[0]['msa_all_seq'].shape)]
 
     msa_mask_block_diag = block_diag(
         *msa_masks, pad_value=0)
@@ -345,25 +348,63 @@ def _merge_features_from_multiple_chains(
   Returns:
     A feature dictionary for the merged example.
   """
+  print("MSA_FEATURES: ", MSA_FEATURES)
+  print("SEQ_FEATURES: ", SEQ_FEATURES)
+  print("TEMPLATE_FEATURES: ", TEMPLATE_FEATURES)
+
+
   merged_example = {}
   for feature_name in chains[0]:
     feats = [x[feature_name] for x in chains]
     feature_name_split = feature_name.split('_all_seq')[0]
     if feature_name_split in MSA_FEATURES:
       if pair_msa_sequences or '_all_seq' in feature_name:
-        merged_example[feature_name] = np.concatenate(feats, axis=1)
+        # if feature_name=="deletion_matrix_all_seq":
+        #   print("hej")
+
+        # if feature_name=="msa":
+        #   continue
+        # #   print("feats.shape: ", np.array(feats[0]).shape)
+        # #   merged_example[feature_name] = np.concatenate(feats, axis=1)
+        # #   print("merged_example[feature_name]: ", merged_example[feature_name].shape)
+        # else:
+        # merged_example[feature_name] = np.concatenate(feats, axis=1)
+        # print("pair_msa_sequences:")
+        # print(feature_name)
+        # print("feats[0].shape: ", np.array(feats[0]).shape)
+        merged_example[feature_name] = np.array(feats[0])
+                #continue
       else:
+        # print("not pair_msa_sequences:")
+        # print(feature_name)
+        # print("feats[0].shape: ", np.array(feats[0]).shape)
         merged_example[feature_name] = block_diag(
             *feats, pad_value=MSA_PAD_VALUES[feature_name])
+        # print("after block_diagonal:")
+        # print(feature_name)
+        # print("feats[0].shape: ", np.array(feats[0]).shape)
     elif feature_name_split in SEQ_FEATURES:
-      merged_example[feature_name] = np.concatenate(feats, axis=0)
+      if feature_name=="deletion_mean" and len(feats)>1:
+        # print("feats[0].shape: ", np.array(feats[1]).shape)
+        # print("len(feats): ", len(feats))
+        # print("feats[0]==feats[1]: ", feats[0]==feats[1])
+        merged_example[feature_name] = np.array(feats[0])
+      else:
+        merged_example[feature_name] = np.concatenate(feats, axis=0)
     elif feature_name_split in TEMPLATE_FEATURES and np.all(feats[0]!=0):
-      merged_example[feature_name] = np.concatenate(feats, axis=1)
+        # if len(feats)==1:
+        #   merged_example[feature_name] = np.concatenate(np.array(feats[0]), axis=1)
+        # else:
+        merged_example[feature_name] = np.concatenate(feats, axis=1)
     elif feature_name_split in TEMPLATE_FEATURES: continue
     elif feature_name_split in CHAIN_FEATURES:
       merged_example[feature_name] = np.sum(x for x in feats).astype(np.int32)
     else:
       merged_example[feature_name] = feats[0]
+
+    #if feature_name in MSA_FEATURES:
+    print("feature_name: ", feature_name)
+    print("merged_example[feature_name]: ", merged_example[feature_name].shape)
   if 'template_aatype' not in merged_example:                                                           
     merged_len = merged_example['aatype'].shape[0]                                                      
     merged_example['template_aatype'] = np.zeros((1, merged_len), dtype=np.int32)                       
@@ -430,18 +471,36 @@ def merge_chain_features(np_chains_list: List[pipeline.FeatureDict],
   """
   np_chains_list = _pad_templates(
       np_chains_list, max_templates=max_templates)
+  print("running _merge_homomers_dense_msa")
   np_chains_list = _merge_homomers_dense_msa(np_chains_list)
   # Unpaired MSA features will be always block-diagonalised; paired MSA
   # features will be concatenated.
-  np_example = _merge_features_from_multiple_chains(
-      np_chains_list, pair_msa_sequences=False)
+  print("running _merge_features_from_multiple_chains")
+  print("len(chains_list): ", len(np_chains_list))
+  print("np_chains_list[0].keys(): ", np_chains_list[0].keys())
+  print("np_chains_list[0][msa]: ", np_chains_list[0]["msa"].shape)
+  
+  np_example = _merge_features_from_multiple_chains( # this is making the msa weird
+      np_chains_list, pair_msa_sequences=True)
+  print("np_example igen: ", np_example["msa"].shape)
+  #sys.exit()
   if pair_msa_sequences:
+    print("running _concatenate_paired_and_unpaired_features")
     np_example = _concatenate_paired_and_unpaired_features(np_example)
+  print("_correct_post_merged_feats")
   np_example = _correct_post_merged_feats(
       np_example=np_example,
       np_chains_list=np_chains_list,
       pair_msa_sequences=pair_msa_sequences)
-
+  print("done with correct_post_merged_feats")
+  for k, v in np_example.items():
+    if 670 in v.shape:
+      print(k)
+      print(v.shape)
+    if 4095 in v.shape:
+      print(k)
+      print(v.shape)
+  # sys.exit()
   return np_example
 
 

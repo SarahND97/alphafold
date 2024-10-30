@@ -296,12 +296,13 @@ def predict_structure_modified(
     fasta_path: str,
     fasta_name: str,
     output_dir_base: str,
-    data_pipeline: Union[pipeline.DataPipeline, pipeline_multimer.DataPipeline],
+    data_pipeline: Union[pipeline.DataPipeline, pipeline_multimer.DataPipeline, pipeline.ModifiedDataPipeline, pipeline_multimer.ModifiedDataPipeline, pipeline.FoldDockPipeline],
     model_runners: Dict[str, model.RunModel],
     random_seed: int,
     msa_dir: str = None,
     output_dir: str = None,
     separate_output_dir: bool = True,
+    paired_msa: str = None,
 ):
     """Predicts structure using AlphaFold for the given sequence."""
     logging.info("Predicting %s", fasta_name)
@@ -325,9 +326,14 @@ def predict_structure_modified(
 
     # Get features.
     t_0 = time.time()
+    # original pipeline
     feature_dict = data_pipeline.process(
-        input_fasta_path=fasta_path, msa_output_dir=msa_output_dir
+        input_fasta_path=fasta_path, paired_msa=paired_msa
     )
+    # folddock pipeline
+    # feature_dict = data_pipeline.process(
+    #     input_fasta_path=fasta_path, input_msas=[paired_msa]
+    # )
     timings["features"] = time.time() - t_0
 
     # Run the models.
@@ -357,49 +363,34 @@ def predict_structure_modified(
             t_diff,
         )
         np_prediction_result = _jnp_to_np(dict(prediction_result))
-
+        print("np_prediction_result", np_prediction_result.keys())
+        print('iptm', np_prediction_result["iptm"])
         return np_prediction_result["pair_2"], np_prediction_result["logits_layer_-1"] 
 
 # function to get the pair and logits for the TMHead
-def get_info_for_tmhead(db_preset, model_preset, layers_to_calculate_iptm, fasta_paths, msa_dir, output_dir, data_dir, model_to_run, num_ensemble, random_seed_input=None):
+def get_info_for_tmhead(model_preset, layers_to_calculate_iptm, fasta_paths, msa_dir, output_dir, data_dir, model_to_run, num_ensemble, paired_msa, random_seed_input=None): 
 
-    use_small_bfd = db_preset == "reduced_dbs"
-    
     run_multimer_system = "multimer" in model_preset
-    model_type = "Multimer" if run_multimer_system else "Monomer"
     
     # Check for duplicate FASTA file names.
     fasta_names = [pathlib.Path(p).stem for p in fasta_paths]
     if len(fasta_names) != len(set(fasta_names)):
         raise ValueError("All FASTA paths must have a unique basename.")
 
-    monomer_data_pipeline = pipeline.DataPipeline(
-        jackhmmer_binary_path=None,
-        hhblits_binary_path=None,
-        uniref90_database_path=None,
-        mgnify_database_path=None,
-        bfd_database_path=None,
-        uniref30_database_path=None,
-        small_bfd_database_path=None,
-        template_searcher=None,
-        template_featurizer=None,
-        use_small_bfd=use_small_bfd,
+    monomer_data_pipeline = pipeline.ModifiedDataPipeline(
         use_precomputed_msas=True,
     )
 
     if run_multimer_system:
         num_predictions_per_model = 1
-        data_pipeline = pipeline_multimer.DataPipeline(
+        data_pipeline = pipeline_multimer.ModifiedDataPipeline(
             monomer_data_pipeline=monomer_data_pipeline,
-            jackhmmer_binary_path=None,
-            uniprot_database_path=None,
             use_precomputed_msas=True,
         )
     else:
         num_predictions_per_model = 1
         data_pipeline = monomer_data_pipeline
 
-    
     # Update config so that it computes the iptm at the specified layers
     iptm_layers = layers_to_calculate_iptm
     upper_range = config.CONFIG_MULTIMER.model.embeddings_and_evoformer.evoformer_num_block + 1
@@ -448,6 +439,7 @@ def get_info_for_tmhead(db_preset, model_preset, layers_to_calculate_iptm, fasta
             model_runners=model_runners,
             random_seed=random_seed,
             msa_dir=msa_dir,
+            paired_msa=paired_msa,
         )
 
     return pair, logits

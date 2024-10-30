@@ -19,7 +19,7 @@ import contextlib
 import copy
 import dataclasses
 import json
-import os
+import os, sys
 import tempfile
 from typing import Mapping, MutableMapping, Sequence
 
@@ -179,7 +179,6 @@ def pad_msa(np_example, min_num_seq):
         )
     return np_example
 
-
 class DataPipeline:
     """Runs the alignment tools and assembles the input features."""
 
@@ -319,3 +318,130 @@ class DataPipeline:
         np_example = pad_msa(np_example, 512)
 
         return np_example
+
+class ModifiedDataPipeline:
+    """Runs the alignment tools and assembles the input features."""
+
+    def __init__(
+        self,
+        monomer_data_pipeline: pipeline.DataPipeline,
+        use_precomputed_msas: bool = True,
+    ):
+        """Initializes the data pipeline.
+
+        Args:
+          monomer_data_pipeline: An instance of pipeline.DataPipeline - that runs
+            the data pipeline for the monomer AlphaFold system.
+          jackhmmer_binary_path: Location of the jackhmmer binary.
+          uniprot_database_path: Location of the unclustered uniprot sequences, that
+            will be searched with jackhmmer and used for MSA pairing.
+          max_uniprot_hits: The maximum number of hits to return from uniprot.
+          use_precomputed_msas: Whether to use pre-existing MSAs; see run_alphafold.
+        """
+        self._monomer_data_pipeline = monomer_data_pipeline
+
+        self._uniprot_msa_runner = None
+        self._max_uniprot_hits = 50000
+        self.use_precomputed_msas = use_precomputed_msas
+
+    def _process_single_chain(
+        self,
+        chain_id: str,
+        sequence: str,
+        description: str,
+        # msa_output_dir: str,
+        paired_msa: str,
+        is_homomer_or_monomer: bool,
+    ) -> pipeline.FeatureDict:
+        """Runs the monomer pipeline on a single chain."""
+        chain_fasta_str = f">chain_{chain_id}\n{sequence}\n"
+        chain_msa_output_dir = paired_msa#os.path.join(msa_output_dir, chain_id)
+        # if not os.path.exists(chain_msa_output_dir):
+        #     os.makedirs(chain_msa_output_dir)
+        with temp_fasta_file(chain_fasta_str) as chain_fasta_path:
+            logging.info(
+                "Running monomer pipeline on chain %s: %s", chain_id, description
+            )
+            # logging.info("MSA_output_dir: %s", msa_output_dir)
+            chain_features = self._monomer_data_pipeline.process(
+                input_fasta_path=chain_fasta_path, paired_msa=paired_msa
+            )
+
+            # We only construct the pairing features if there are 2 or more unique
+            # sequences.
+            if not is_homomer_or_monomer:
+                all_seq_msa_features = self._all_seq_msa_features(
+                    chain_fasta_path, chain_msa_output_dir
+                )
+                chain_features.update(all_seq_msa_features)
+        return chain_features
+
+    def _all_seq_msa_features(self, input_fasta_path, paired_msa):
+        """Get MSA features for unclustered uniprot, for pairing."""
+        # out_path = os.path.join(msa_output_dir, "uniprot_hits.sto")
+        result = pipeline.run_msa_tool(
+            self._uniprot_msa_runner,
+            input_fasta_path,
+            paired_msa,
+            "a3m",
+            self.use_precomputed_msas,
+        )
+        msa = parsers.parse_a3m(result["a3m"])
+        msa = msa.truncate(max_seqs=self._max_uniprot_hits)
+        
+        all_seq_features = pipeline.make_msa_features([msa])
+        valid_feats = msa_pairing.MSA_FEATURES + ("msa_species_identifiers",)
+        feats = {
+            f"{k}_all_seq": v for k, v in all_seq_features.items() if k in valid_feats
+        }
+        return feats
+
+    def process(
+        self, input_fasta_path: str, paired_msa: str
+    ) -> pipeline.FeatureDict:
+        """Runs alignment tools on the input sequences and creates features."""
+        with open(input_fasta_path) as f:
+            input_fasta_str = f.read()
+        input_seqs, input_descs = parsers.parse_fasta(input_fasta_str)
+
+        chain_id_map = _make_chain_id_map(
+            sequences=input_seqs, descriptions=input_descs
+        )
+        
+        all_chain_features = {}
+        sequence_features = {}
+        is_homomer_or_monomer = len(set(input_seqs)) == 1
+        for chain_id, fasta_chain in chain_id_map.items():
+            if fasta_chain.sequence in sequence_features:
+                all_chain_features[chain_id] = copy.deepcopy(
+                    sequence_features[fasta_chain.sequence]
+                )
+                continue
+            chain_features = self._process_single_chain(
+                chain_id=chain_id,
+                sequence=fasta_chain.sequence,
+                description=fasta_chain.description,
+                paired_msa=paired_msa,
+                is_homomer_or_monomer=is_homomer_or_monomer,
+            )
+
+            chain_features = convert_monomer_features(chain_features, chain_id=chain_id)
+            all_chain_features[chain_id] = chain_features
+            sequence_features[fasta_chain.sequence] = chain_features
+
+        all_chain_features = add_assembly_features(all_chain_features)
+
+        # print("all_chain_features: ", all_chain_features)
+        # print("all_chain_features: ", all_chain_features.keys())
+        # print("all_chain_features: ", all_chain_features["A_1"].keys())
+        # sys.exit(0)
+        np_example = feature_processing.pair_and_merge(
+            all_chain_features=all_chain_features
+        )
+
+        # Pad MSA to avoid zero-sized extra_msa.
+        np_example = pad_msa(np_example, 512)
+
+        return np_example
+
+

@@ -14,7 +14,7 @@
 
 """Functions for building the input features for the AlphaFold model."""
 
-import os
+import os, sys
 from typing import Any, Mapping, MutableMapping, Optional, Sequence, Union
 from absl import logging
 from alphafold.common import residue_constants
@@ -243,7 +243,7 @@ class DataPipeline:
             templates_result = templates.TemplateSearchResult(
                 features=template_features, errors=[], warnings=[]
             )
-
+            
         uniref90_msa = parsers.parse_stockholm(jackhmmer_uniref90_result["sto"])
         mgnify_msa = parsers.parse_stockholm(jackhmmer_mgnify_result["sto"])
 
@@ -288,3 +288,139 @@ class DataPipeline:
         )
 
         return {**sequence_features, **msa_features, **templates_result.features}
+
+class ModifiedDataPipeline:
+    """Runs the alignment tools and assembles the input features."""
+
+    def __init__(
+        self,
+        
+        use_precomputed_msas: bool = True,
+    ):
+        """Initializes the data pipeline."""
+        self.use_precomputed_msas = use_precomputed_msas
+
+    def process(self, input_fasta_path: str, paired_msa: str) -> FeatureDict:
+        """Runs alignment tools on the input sequence and creates features."""
+        with open(input_fasta_path) as f:
+            input_fasta_str = f.read()
+        input_seqs, input_descs = parsers.parse_fasta(input_fasta_str)
+        if len(input_seqs) != 1:
+            raise ValueError(
+                f"More than one input sequence found in {input_fasta_path}."
+            )
+        input_sequence = input_seqs[0]
+        input_description = input_descs[0]
+        num_res = len(input_sequence)
+  
+        # prepare empty template features
+        TEMPLATE_FEATURES = {
+            "template_aatype": np.float32,
+            "template_all_atom_masks": np.float32,
+            "template_all_atom_positions": np.float32,
+            "template_domain_names": np.object,
+            "template_sequence": np.object,
+            "template_sum_probs": np.float32,
+        }
+        template_features = {}
+        for name in TEMPLATE_FEATURES:
+            template_features[name] = np.array([], dtype=TEMPLATE_FEATURES[name])
+            templates_result = templates.TemplateSearchResult(
+                features=template_features, errors=[], warnings=[]
+            )
+
+        print("######## input_fasta_str: ###########", input_fasta_str)
+        print("########## input_description: ###########", input_description)
+        # sys.exit()
+
+        # paired_out_path = os.path.join(msa_output_dir, "bfd_uniref_hits.a3m")
+        hhblits_bfd_uniref_result = run_msa_tool(
+            msa_runner=None,
+            input_fasta_path=input_fasta_path,
+            msa_out_path=paired_msa,
+            msa_format="a3m",
+            use_precomputed_msas=self.use_precomputed_msas,
+        )
+        bfd_msa = parsers.parse_a3m(hhblits_bfd_uniref_result["a3m"])
+
+        sequence_features = make_sequence_features(
+            sequence=input_sequence, description=input_description, num_res=num_res
+        )
+
+        msa_features = make_msa_features(([bfd_msa]))
+
+        logging.info("BFD MSA size: %d sequences.", len(bfd_msa))
+        
+        return {**sequence_features, **msa_features, **templates_result.features}
+    
+
+class FoldDockPipeline:
+  """Runs the alignment tools and assembles the input features."""
+
+  def __init__(self):
+    pass
+  
+  def process_str(
+        self,
+        input_sequence,
+        input_description = None,
+  ) -> FeatureDict:
+        """Assembles features for a single sequence in a FASTA file""" 
+        num_res = len(input_sequence)
+        sequence_features = make_sequence_features(
+          sequence=input_sequence,
+          description=input_description,
+          num_res=num_res,
+          )
+        return sequence_features
+
+  def process(self, input_fasta_path: str, input_msas: list) -> FeatureDict:
+    """Runs alignment tools on the input sequence and creates features."""
+    
+    with open(input_fasta_path) as f:
+        input_fasta_str = f.read()
+        input_seqs, input_descs = parsers.parse_fasta(input_fasta_str)
+        if len(input_seqs) > 2:
+            raise ValueError(
+                f"More than two input sequences found in {input_fasta_path}."
+            )
+        input_sequence_1 = input_seqs[0]
+        input_description_1 = input_descs[0]
+        input_sequence_2 = input_seqs[1]
+        input_description_2 = input_descs[1]
+        # input_description = input_descs[0]
+        num_res = len(input_sequence_1+input_sequence_2)
+    
+    parsed_msas = []
+    parsed_delmat = []
+    for custom_msa in input_msas:
+      msa = ''.join([line for line in open(custom_msa)])
+      if custom_msa[-3:] == 'sto':
+        msa_object = parsers.parse_stockholm(msa)
+        parsed_msa = msa_object.sequences
+        parsed_deletion_matrix = msa_object.deletion_matrix
+      elif custom_msa[-3:] == 'a3m':
+        msa_object = parsers.parse_a3m(msa)
+        parsed_msa = msa_object.sequences
+        parsed_deletion_matrix = msa_object.deletion_matrix
+        # non_zero_elements = [item for sublist in parsed_deletion_matrix for item in (sublist if isinstance(sublist, list) else [sublist]) if item != 0]
+        # print(non_zero_elements ) 
+      else: raise TypeError('Unknown format for input MSA, please make sure '
+                            'the MSA files you provide terminates with (and '
+                            'are formatted as) .sto or .a3m')
+      parsed_msas.append(parsed_msa)
+      parsed_delmat.append(parsed_deletion_matrix)
+
+    # sequence_features = make_sequence_features(
+    #     sequence=input_sequence_1+input_sequence_2,
+    #     description=input_description,
+    #     num_res=num_res)
+
+    msa_features = make_msa_features(
+        msas=parsed_msas, deletion_matrices=parsed_delmat)
+
+    for n, msa in enumerate(parsed_msas):
+        logging.info('MSA %d size: %d sequences.', n, len(msa))
+    logging.info('Final (deduplicated) MSA size: %d sequences.',
+                 msa_features['num_alignments'][0])
+    return {**msa_features} #**sequence_features

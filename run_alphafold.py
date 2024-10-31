@@ -32,6 +32,7 @@ from absl import logging
 # from alphafold.common import residue_constants
 from alphafold.data import pipeline
 from alphafold.data import pipeline_multimer
+from alphafold.data import folddock_pipeline
 # from alphafold.data import templates
 # from alphafold.data.tools import hhsearch
 # from alphafold.data.tools import hmmsearch
@@ -296,7 +297,7 @@ def predict_structure_modified(
     fasta_path: str,
     fasta_name: str,
     output_dir_base: str,
-    data_pipeline: Union[pipeline.DataPipeline, pipeline_multimer.DataPipeline, pipeline.ModifiedDataPipeline, pipeline_multimer.ModifiedDataPipeline, pipeline.FoldDockPipeline],
+    data_pipeline: Union[pipeline.DataPipeline, pipeline_multimer.DataPipeline, pipeline.ModifiedDataPipeline, pipeline_multimer.ModifiedDataPipeline, folddock_pipeline.FoldDockPipeline],
     model_runners: Dict[str, model.RunModel],
     random_seed: int,
     msa_dir: str = None,
@@ -327,13 +328,13 @@ def predict_structure_modified(
     # Get features.
     t_0 = time.time()
     # original pipeline
-    feature_dict = data_pipeline.process(
-        input_fasta_path=fasta_path, paired_msa=paired_msa
-    )
-    # folddock pipeline
     # feature_dict = data_pipeline.process(
-    #     input_fasta_path=fasta_path, input_msas=[paired_msa]
+    #     input_fasta_path=fasta_path, paired_msa=paired_msa
     # )
+    # folddock pipeline
+    feature_dict = data_pipeline.process(
+        input_fasta_path=fasta_path, input_msas=[paired_msa]
+    )
     timings["features"] = time.time() - t_0
 
     # Run the models.
@@ -390,6 +391,8 @@ def get_info_for_tmhead(model_preset, layers_to_calculate_iptm, fasta_paths, msa
     else:
         num_predictions_per_model = 1
         data_pipeline = monomer_data_pipeline
+
+    data_pipeline = folddock_pipeline.FoldDockPipeline()
 
     # Update config so that it computes the iptm at the specified layers
     iptm_layers = layers_to_calculate_iptm

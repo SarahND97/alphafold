@@ -36,9 +36,10 @@ def get_confidence_metrics(
 ) -> Mapping[str, Any]:
     """Post processes prediction_result to get confidence metrics."""
     confidence_metrics = {}
-    # confidence_metrics["plddt"] = confidence.compute_plddt(
-    #     prediction_result["predicted_lddt"]["logits"]
-    # )
+    if "predicted_lddt" in prediction_result:
+        confidence_metrics["plddt"] = confidence.compute_plddt(
+            prediction_result["predicted_lddt"]["logits"]
+        )
     if "predicted_aligned_error" in prediction_result:
         confidence_metrics.update(
             confidence.compute_predicted_aligned_error(
@@ -78,10 +79,8 @@ def get_extra_confidence_metrics(
     """Post processes prediction_result to get confidence metrics."""
     extra_confidence_metrics = {}
 
-    iptm_values = []
-    ptm_values = []
     if len(extra_output_layers) == len(prediction_result["pae_layer_values"]):
-        for i in extra_output_layers:
+        for i in range(len(extra_output_layers)):
             # pae_layer_name = f"predicted_aligned_error_layer_{i}"
             # if pae_layer_name in prediction_result:
             # extra_confidence_metrics.update(
@@ -91,22 +90,22 @@ def get_extra_confidence_metrics(
             #         layer=i,
             #     )
             # )
-            ptm_values.append(confidence.predicted_tm_score(
+            extra_confidence_metrics[f"ptm_layer_{extra_output_layers[i]}"] = confidence.predicted_tm_score(
                 logits=prediction_result["pae_layer_values"][i]["logits"],
                 breaks=prediction_result["pae_layer_values"][i]["breaks"],
                 asym_id=None,
-            ))
+            )
+            extra_confidence_metrics[f"logits_layer_{extra_output_layers[i]}"] = prediction_result["pae_layer_values"][i]["logits"]
             if multimer_mode:
                 # Compute the ipTM only for the multimer model.
-                iptm_values.append(confidence.predicted_tm_score(
+                
+                extra_confidence_metrics[f"iptm_layer_{extra_output_layers[i]}"] = confidence.predicted_tm_score(
                         logits=prediction_result["pae_layer_values"][i]["logits"],
                         breaks=prediction_result["pae_layer_values"][i]["breaks"],
                         asym_id=prediction_result["asym_id"],
                         interface=True,
-                    ))
+                    )
                 
-    extra_confidence_metrics["iptm_values"] = np.array(iptm_values)
-    extra_confidence_metrics["ptm_values"] = np.array(ptm_values)
     return extra_confidence_metrics
 
 
@@ -270,11 +269,18 @@ class RunModel:
                 extra_output_layers=self.config.model.embeddings_and_evoformer.extra_evoformer_output_layers,
             )
         )
-        del result['pae_layer_values']
-        del result['intermediate_pair']
-        del result['predicted_aligned_error']
+        if 'pae_layer_values' in result.keys():
+            del result['pae_layer_values']
+        if 'intermediate_pair' in result.keys():
+           del result['intermediate_pair']
         del result['msa']
         del result['aligned_confidence_probs']
+        del result['predicted_aligned_error']
         del result['pair']
-        del result['distogram']
+        del result["single"]
+        del result["logits"]
+        if 'structure_module' in result.keys():
+            del result['structure_module']
+        if 'distogram' in result.keys():
+            del result['distogram']
         return result

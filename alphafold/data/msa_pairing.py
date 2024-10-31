@@ -359,42 +359,14 @@ def _merge_features_from_multiple_chains(
     feature_name_split = feature_name.split('_all_seq')[0]
     if feature_name_split in MSA_FEATURES:
       if pair_msa_sequences or '_all_seq' in feature_name:
-        # if feature_name=="deletion_matrix_all_seq":
-        #   print("hej")
-
-        # if feature_name=="msa":
-        #   continue
-        # #   print("feats.shape: ", np.array(feats[0]).shape)
-        # #   merged_example[feature_name] = np.concatenate(feats, axis=1)
-        # #   print("merged_example[feature_name]: ", merged_example[feature_name].shape)
-        # else:
-        # merged_example[feature_name] = np.concatenate(feats, axis=1)
-        # print("pair_msa_sequences:")
-        # print(feature_name)
-        # print("feats[0].shape: ", np.array(feats[0]).shape)
-        merged_example[feature_name] = np.array(feats[0])
-                #continue
+        merged_example[feature_name] = np.concatenate(feats, axis=1)
       else:
-        # print("not pair_msa_sequences:")
-        # print(feature_name)
-        # print("feats[0].shape: ", np.array(feats[0]).shape)
         merged_example[feature_name] = block_diag(
             *feats, pad_value=MSA_PAD_VALUES[feature_name])
-        # print("after block_diagonal:")
-        # print(feature_name)
-        # print("feats[0].shape: ", np.array(feats[0]).shape)
     elif feature_name_split in SEQ_FEATURES:
       if feature_name=="deletion_mean" and len(feats)>1:
-        # print("feats[0].shape: ", np.array(feats[1]).shape)
-        # print("len(feats): ", len(feats))
-        # print("feats[0]==feats[1]: ", feats[0]==feats[1])
-        merged_example[feature_name] = np.array(feats[0])
-      else:
         merged_example[feature_name] = np.concatenate(feats, axis=0)
     elif feature_name_split in TEMPLATE_FEATURES and np.all(feats[0]!=0):
-        # if len(feats)==1:
-        #   merged_example[feature_name] = np.concatenate(np.array(feats[0]), axis=1)
-        # else:
         merged_example[feature_name] = np.concatenate(feats, axis=1)
     elif feature_name_split in TEMPLATE_FEATURES: continue
     elif feature_name_split in CHAIN_FEATURES:
@@ -402,9 +374,6 @@ def _merge_features_from_multiple_chains(
     else:
       merged_example[feature_name] = feats[0]
 
-    #if feature_name in MSA_FEATURES:
-    print("feature_name: ", feature_name)
-    print("merged_example[feature_name]: ", merged_example[feature_name].shape)
   if 'template_aatype' not in merged_example:                                                           
     merged_len = merged_example['aatype'].shape[0]                                                      
     merged_example['template_aatype'] = np.zeros((1, merged_len), dtype=np.int32)                       
@@ -471,38 +440,18 @@ def merge_chain_features(np_chains_list: List[pipeline.FeatureDict],
   """
   np_chains_list = _pad_templates(
       np_chains_list, max_templates=max_templates)
-  print("running _merge_homomers_dense_msa")
   np_chains_list = _merge_homomers_dense_msa(np_chains_list)
   # Unpaired MSA features will be always block-diagonalised; paired MSA
   # features will be concatenated.
-  print("running _merge_features_from_multiple_chains")
-  print("len(chains_list): ", len(np_chains_list))
-  print("np_chains_list[0].keys(): ", np_chains_list[0].keys())
-  print("np_chains_list[0][msa]: ", np_chains_list[0]["msa"].shape)
-  
   np_example = _merge_features_from_multiple_chains( # this is making the msa weird
       np_chains_list, pair_msa_sequences=True)
-  print("np_example igen: ", np_example["msa"].shape)
-  #sys.exit()
   if pair_msa_sequences:
-    print("running _concatenate_paired_and_unpaired_features")
     np_example = _concatenate_paired_and_unpaired_features(np_example)
-  print("_correct_post_merged_feats")
   np_example = _correct_post_merged_feats(
       np_example=np_example,
       np_chains_list=np_chains_list,
       pair_msa_sequences=pair_msa_sequences)
-  print("done with correct_post_merged_feats")
-  for k, v in np_example.items():
-    if 670 in v.shape:
-      print(k)
-      print(v.shape)
-    if 4095 in v.shape:
-      print(k)
-      print(v.shape)
-  # sys.exit()
   return np_example
-
 
 def deduplicate_unpaired_sequences(
     np_chains: List[pipeline.FeatureDict]) -> List[pipeline.FeatureDict]:

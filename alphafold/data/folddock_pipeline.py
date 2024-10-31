@@ -189,7 +189,6 @@ class FoldDockPipeline:
             # elif key in sequence_features:
             # ignoring auth_chain_id for now 
             elif key not in ['auth_chain_id', 'domain_name', 'seq_length', 'sequence']:
-                print("key: ", key)
                 sequence_features[key] = np.concatenate([sequence_features[key], sequence_features_chain[key]], axis=0)
             elif key in ['seq_length', 'sequence']: 
                 sequence_features[key] = sequence_features[key] + sequence_features_chain[key]
@@ -378,8 +377,8 @@ class FoldDockPipeline:
     features = process_final(features)
         
 
-    for n, msa in enumerate(msa_objects):
-        logging.info('MSA %d size: %d sequences.', n, len(msa.sequences))
+    # for n, msa in enumerate(msa_objects):
+    #     logging.info('MSA %d size: %d sequences.', n, len(msa.sequences))
     logging.info('Final (deduplicated) MSA size: %d sequences.',
                  msa_features['num_alignments'])
     return features#{**msa_features, **merged_sequence_features, **templates_result.features}

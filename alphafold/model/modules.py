@@ -210,12 +210,12 @@ class AlphaFoldIteration(hk.Module):
 
       head_factory = {
           'masked_msa': MaskedMsaHead,
-          'distogram': DistogramHead,
-          'structure_module': functools.partial(
-              folding.StructureModule, compute_loss=compute_loss),
-          'predicted_lddt': PredictedLDDTHead,
+          # 'distogram': DistogramHead,
+          # 'structure_module': functools.partial(
+          #     folding.StructureModule, compute_loss=compute_loss),
+          # 'predicted_lddt': PredictedLDDTHead,
           'predicted_aligned_error': PredictedAlignedErrorHead,
-          'experimentally_resolved': ExperimentallyResolvedHead,
+          #'experimentally_resolved': ExperimentallyResolvedHead,
       }[head_name]
       heads[head_name] = (head_config,
                           head_factory(head_config, self.global_config))

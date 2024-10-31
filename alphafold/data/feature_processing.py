@@ -72,12 +72,6 @@ def pair_and_merge(
       msa_crop_size=MSA_CROP_SIZE,
       pair_msa_sequences=pair_msa_sequences,
       max_templates=MAX_TEMPLATES)
-  print("np_chains_list[0][msa].shape: ", (np_chains_list[0]["msa"].shape))
-  print("np_chains_list[0][msa].shape: ", (np_chains_list[1]["msa"].shape))
-  print((np_chains_list[0]["num_alignments_all_seq"].shape))
-  print((np_chains_list[1]["msa_species_identifiers_all_seq"].shape))
-  print((np_chains_list[1]["msa_all_seq"].shape))
-  #print(np_chains_list[1])
   np_example = msa_pairing.merge_chain_features(
       np_chains_list=np_chains_list, pair_msa_sequences=pair_msa_sequences,
       max_templates=MAX_TEMPLATES)
@@ -141,7 +135,7 @@ def _crop_single_chain(chain: pipeline.FeatureDict,
     msa_crop_size = np.minimum(msa_size, max_msa_crop_size)
   else:
     msa_crop_size = np.minimum(msa_size, msa_crop_size)
-
+    
   include_templates = 'template_aatype' in chain and max_templates
   if include_templates:
     num_templates = chain['template_aatype'].shape[0]

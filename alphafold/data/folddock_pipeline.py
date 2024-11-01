@@ -11,7 +11,7 @@ from alphafold.data import templates
 # from alphafold.data.tools import jackhmmer
 # from alphafold.data import msa_pairing
 from alphafold.data.pipeline import make_msa_features, make_sequence_features, FeatureDict
-from alphafold.data.pipeline_multimer import convert_monomer_features
+from alphafold.data.pipeline_multimer import convert_monomer_features, pad_msa
 from alphafold.data.feature_processing import _crop_single_chain, process_final
 from alphafold.data.msa_pairing import block_diag, SEQ_FEATURES
 import numpy as np
@@ -375,6 +375,8 @@ class FoldDockPipeline:
     
 
     features = process_final(features)
+    # Pad MSA to avoid zero-sized extra_msa.
+    features = pad_msa(features, 512)
         
 
     # for n, msa in enumerate(msa_objects):

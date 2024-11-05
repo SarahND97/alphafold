@@ -2,132 +2,13 @@ import os, sys
 from typing import Any, Mapping, MutableMapping, Optional, Sequence, Union
 from absl import logging
 from alphafold.common import residue_constants
-# from alphafold.data import msa_identifiers
 from alphafold.data import parsers
 from alphafold.data import templates
-# from alphafold.data.tools import hhblits
-# from alphafold.data.tools import hhsearch
-# from alphafold.data.tools import hmmsearch
-# from alphafold.data.tools import jackhmmer
-# from alphafold.data import msa_pairing
 from alphafold.data.pipeline import make_msa_features, make_sequence_features, FeatureDict
 from alphafold.data.pipeline_multimer import convert_monomer_features, pad_msa
 from alphafold.data.feature_processing import _crop_single_chain, process_final
 from alphafold.data.msa_pairing import block_diag, SEQ_FEATURES
 import numpy as np
-# import scipy.linalg
-
-# FeatureDict = MutableMapping[str, np.ndarray]
-# TemplateSearcher = Union[hhsearch.HHSearch, hmmsearch.Hmmsearch]
-
-# def make_msa_features(msas: Sequence[parsers.Msa]) -> FeatureDict:
-#     """Constructs a feature dict of MSA features."""
-#     if not msas:
-#         raise ValueError("At least one MSA must be provided.")
-
-#     int_msa = []
-#     deletion_matrix = []
-#     species_ids = []
-#     seen_sequences = set()
-#     for msa_index, msa in enumerate(msas):
-#         if not msa:
-#             raise ValueError(f"MSA {msa_index} must contain at least one sequence.")
-#         for sequence_index, sequence in enumerate(msa.sequences):
-#             if sequence in seen_sequences:
-#                 continue
-#             seen_sequences.add(sequence)
-#             int_msa.append(
-#                 [residue_constants.HHBLITS_AA_TO_ID[res] for res in sequence]
-#             )
-#             deletion_matrix.append(msa.deletion_matrix[sequence_index])
-#             identifiers = msa_identifiers.get_identifiers(
-#                 msa.descriptions[sequence_index]
-#             )
-#             species_ids.append(identifiers.species_id.encode("utf-8"))
-
-#     num_res = len(msas[0].sequences[0])
-#     num_alignments = len(int_msa)
-#     features = {}
-#     features["deletion_matrix_int"] = np.array(deletion_matrix, dtype=np.int32)
-#     features["msa"] = np.array(int_msa, dtype=np.int32)
-#     features["num_alignments"] = np.array([num_alignments] * num_res, dtype=np.int32)
-#     features["msa_species_identifiers"] = np.array(species_ids, dtype=np.object_)
-#     return features
-
-# def block_diag(*arrs: np.ndarray, pad_value: float = 0.0) -> np.ndarray:
-#   """Like scipy.linalg.block_diag but with an optional padding value."""
-#   ones_arrs = [np.ones_like(x) for x in arrs]
-#   off_diag_mask = 1.0 - scipy.linalg.block_diag(*ones_arrs)
-#   diag = scipy.linalg.block_diag(*arrs)
-#   diag += (off_diag_mask * pad_value).astype(diag.dtype)
-#   return diag
-
-# def _crop_single_chain(chain: FeatureDict,
-#                        msa_crop_size: int,
-#                        pair_msa_sequences: bool,
-#                        max_templates: int) -> FeatureDict:
-#   """Crops msa sequences to `msa_crop_size`."""
-#   msa_size = chain['num_alignments']
-
-#   if pair_msa_sequences:
-#     msa_size_all_seq = chain['num_alignments_all_seq']
-#     msa_crop_size_all_seq = np.minimum(msa_size_all_seq, msa_crop_size // 2)
-
-#     # We reduce the number of un-paired sequences, by the number of times a
-#     # sequence from this chain's MSA is included in the paired MSA.  This keeps
-#     # the MSA size for each chain roughly constant.
-#     msa_all_seq = chain['msa_all_seq'][:msa_crop_size_all_seq, :]
-#     num_non_gapped_pairs = np.sum(
-#         np.any(msa_all_seq != msa_pairing.MSA_GAP_IDX, axis=1))
-#     num_non_gapped_pairs = np.minimum(num_non_gapped_pairs,
-#                                       msa_crop_size_all_seq)
-
-#     # Restrict the unpaired crop size so that paired+unpaired sequences do not
-#     # exceed msa_seqs_per_chain for each chain.
-#     max_msa_crop_size = np.maximum(msa_crop_size - num_non_gapped_pairs, 0)
-#     msa_crop_size = np.minimum(msa_size, max_msa_crop_size)
-#   else:
-#     msa_crop_size = np.minimum(msa_size, msa_crop_size)
-
-#   include_templates = 'template_aatype' in chain and max_templates
-#   if include_templates:
-#     num_templates = chain['template_aatype'].shape[0]
-#     templates_crop_size = np.minimum(num_templates, max_templates)
-
-#   for k in chain:
-#     k_split = k.split('_all_seq')[0]
-#     if k_split in msa_pairing.TEMPLATE_FEATURES and len(chain[k].shape)>1:
-#       chain[k] = chain[k][:templates_crop_size, :]
-#     elif k_split in msa_pairing.MSA_FEATURES:
-#       if '_all_seq' in k and pair_msa_sequences:
-#         chain[k] = chain[k][:msa_crop_size_all_seq, :]
-#       else:
-#         chain[k] = chain[k][:msa_crop_size, :]
-
-#   chain['num_alignments'] = np.asarray(msa_crop_size, dtype=np.int32)
-#   if include_templates:
-#     chain['num_templates'] = np.asarray(templates_crop_size, dtype=np.int32)
-#   if pair_msa_sequences:
-#     chain['num_alignments_all_seq'] = np.asarray(
-#         msa_crop_size_all_seq, dtype=np.int32)
-#   return chain
-
-# def make_sequence_features(
-#     sequence: str, description: str, num_res: int
-# ) -> FeatureDict:
-#     """Constructs a feature dict of sequence features."""
-#     features = {}
-#     features["aatype"] = residue_constants.sequence_to_onehot(
-#         sequence=sequence,
-#         mapping=residue_constants.restype_order_with_x,
-#         map_unknown_to_x=True,
-#     )
-#     features["between_segment_residues"] = np.zeros((num_res,), dtype=np.int32)
-#     features["domain_name"] = np.array([description.encode("utf-8")], dtype=np.object_)
-#     features["residue_index"] = np.array(range(num_res), dtype=np.int32)
-#     features["seq_length"] = np.array([num_res] * num_res, dtype=np.int32)
-#     features["sequence"] = np.array([sequence.encode("utf-8")], dtype=np.object_)
-#     return features
 
 class FoldDockPipeline:
   """Runs the alignment tools and assembles the input features."""
@@ -276,8 +157,6 @@ class FoldDockPipeline:
     msa_features = make_msa_features(msas=msa_objects)
          #, deletion_matrices=parsed_delmat)
 
-    
-
     num_chains = 2
     # Convert deletion matrices to float.
     msa_features['deletion_matrix'] = np.asarray(msa_features.pop('deletion_matrix_int'), dtype=np.float32)
@@ -378,7 +257,6 @@ class FoldDockPipeline:
     # Pad MSA to avoid zero-sized extra_msa.
     features = pad_msa(features, 512)
         
-
     # for n, msa in enumerate(msa_objects):
     #     logging.info('MSA %d size: %d sequences.', n, len(msa.sequences))
     logging.info('Final (deduplicated) MSA size: %d sequences.',
